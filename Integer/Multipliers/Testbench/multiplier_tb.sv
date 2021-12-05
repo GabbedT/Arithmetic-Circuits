@@ -156,7 +156,7 @@ module multiplier_tb ();
 
         for (int i = 0; i < TEST_NUMBER; i++) 
           begin              
-            // Check the result on when the data is valid (compare the DUT with the golden model)
+            // Check the result when the data is valid (compare the DUT with the golden model)
             if (SIGNED_MODE == 1)
               begin
                 // Check on the posedge to capture the right values
@@ -214,6 +214,6 @@ module multiplier_tb ();
         // Display the final result of the testbench
         $display("[TESTBENCH COMPLETED] \n Number of test passed: %0d \n Number of test failed: %0d", testPassed, testError);
 
-        $stop;
+        $stop();
       end
 endmodule
