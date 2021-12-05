@@ -214,6 +214,6 @@ module multiplier_tb ();
         // Display the final result of the testbench
         $display("[TESTBENCH COMPLETED] \n Number of test passed: %0d \n Number of test failed: %0d", testPassed, testError);
 
-        $stop();
+        $finish;
       end
 endmodule
