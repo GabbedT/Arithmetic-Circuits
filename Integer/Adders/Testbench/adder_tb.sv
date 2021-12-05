@@ -46,8 +46,6 @@
 
 `timescale 1ns/1ps
 
-`include "BitVector.sv"
-
 module adder_tb ();
 
 ////////////////////////  
