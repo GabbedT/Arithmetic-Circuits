@@ -133,9 +133,9 @@ module CSELA_block #(
   output logic                     csa_carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Nets inout
   localparam IN = 1;
@@ -145,9 +145,9 @@ module CSELA_block #(
   localparam UPPER = 1;
   localparam LOWER = 0;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry bit produced by each sum bit 
   logic [IN:OUT][UPPER:LOWER][BLOCK_WIDTH - 1:0] carry;
