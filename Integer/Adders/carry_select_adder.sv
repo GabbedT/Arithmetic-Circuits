@@ -56,9 +56,9 @@ module carry_select_adder #(
   output logic                    carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Total number of CSA block 
   localparam CSA_BLOCKS = DATA_WIDTH / BLOCK_WIDTH;
@@ -67,9 +67,9 @@ module carry_select_adder #(
   localparam IN = 1;
   localparam OUT = 0;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry bit produced by each sum bit
   logic [IN:OUT][BLOCK_WIDTH - 1:0] carry_rc;
@@ -81,18 +81,16 @@ module carry_select_adder #(
   logic [BLOCK_WIDTH - 1:0] result_rc;
 
       // The first block is a simple ripple carry adder
-      always_comb
-        begin : RIPPLE_CARRY_ADDER
-          for (int i = 0; i < BLOCK_WIDTH; i++) 
-            begin
-              AB_xor_rc[i] = operand_A_i[i] ^ operand_B_i[i];
+      always_comb begin : ripple_carry_adder
+        for (int i = 0; i < BLOCK_WIDTH; i++) begin
+          AB_xor_rc[i] = operand_A_i[i] ^ operand_B_i[i];
 
-              // The first Full-Adder takes the external carry in
-              carry_rc[IN][i] = (i == 0) ? carry_i : carry_rc[OUT][i - 1];
-              result_rc[i] = AB_xor_rc[i] ^ carry_rc[IN][i];
-              carry_rc[OUT][i] = (AB_xor_rc[i] & carry_rc[IN][i]) | (operand_A_i[i] & operand_B_i[i]);
-            end
-        end : RIPPLE_CARRY_ADDER
+          // The first Full-Adder takes the external carry in
+          carry_rc[IN][i] = (i == 0) ? carry_i : carry_rc[OUT][i - 1];
+          result_rc[i] = AB_xor_rc[i] ^ carry_rc[IN][i];
+          carry_rc[OUT][i] = (AB_xor_rc[i] & carry_rc[IN][i]) | (operand_A_i[i] & operand_B_i[i]);
+        end
+      end : ripple_carry_adder
         
   assign result_o [BLOCK_WIDTH - 1:0] = result_rc;
  
@@ -105,16 +103,15 @@ module carry_select_adder #(
   genvar i;
   generate
     // Start from one since the first N bits are calculated by the first RC adder
-    for (i = 1; i < CSA_BLOCKS; i++)
-      begin 
-        CSELA_block N_th_CSA_block(
-          .csa_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH] ),
-          .csa_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH] ),
-          .csa_carry_i     (csa_carry[i - 1]                              ),
-          .csa_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]    ),
-          .csa_carry_o     (csa_carry[i]                                  )
-        );
-      end
+    for (i = 1; i < CSA_BLOCKS; i++) begin 
+      CSELA_block N_th_CSA_block(
+        .csa_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH] ),
+        .csa_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH] ),
+        .csa_carry_i     (csa_carry[i - 1]                              ),
+        .csa_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]    ),
+        .csa_carry_o     (csa_carry[i]                                  )
+      );
+    end
 
   endgenerate
   
@@ -163,29 +160,24 @@ module CSELA_block #(
 
       // A single CSA block has two rows of RC adders which take
       // two different carry input
-      always_comb 
-        begin : RC_ADDER_LOGIC
-          for (int i = 0; i < BLOCK_WIDTH; i++)
-            begin 
-              for (int j = 0; j < 2; j++) 
-                begin
-                  AB_xor[j][i] = csa_operand_A_i[i] ^ csa_operand_B_i[i];
-                  if (i == 0)
-                    begin 
-                      // The first full adder takes a constant as input (different between rows of RC adder)
-                      // j == 0 (LOWER) carry = 0   j == 1 (UPPER) carry = 1
-                      carry[IN][j][i] = j ? 1 : 0;
-                    end
-                  else
-                    begin 
-                      // Just take as carry in the carry of the preceding block
-                      carry[IN][j][i] = carry[OUT][j][i - 1];
-                    end
-                  csa_result[j][i] = AB_xor[j][i] ^ carry[IN][j][i];
-                  carry[OUT][j][i] = (AB_xor[j][i] & carry[IN][j][i]) | (csa_operand_A_i[i] & csa_operand_B_i[i]);
-                end         
-            end
-        end : RC_ADDER_LOGIC
+      always_comb begin : rc_adder_logic
+        for (int i = 0; i < BLOCK_WIDTH; i++) begin 
+          for (int j = 0; j < 2; j++) begin
+            AB_xor[j][i] = csa_operand_A_i[i] ^ csa_operand_B_i[i];
+              if (i == 0) begin 
+                // The first full adder takes a constant as input (different between rows of RC adder)
+                // j == 0 (LOWER) carry = 0   j == 1 (UPPER) carry = 1
+                carry[IN][j][i] = j ? 1 : 0;
+              end else begin 
+                // Just take as carry in the carry of the preceding block
+                carry[IN][j][i] = carry[OUT][j][i - 1];
+              end
+
+            csa_result[j][i] = AB_xor[j][i] ^ carry[IN][j][i];
+            carry[OUT][j][i] = (AB_xor[j][i] & carry[IN][j][i]) | (csa_operand_A_i[i] & csa_operand_B_i[i]);
+          end         
+        end
+      end : rc_adder_logic
 
   // Select the right result
   assign csa_result_o = csa_carry_i ? csa_result[UPPER] : csa_result[LOWER];
