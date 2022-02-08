@@ -70,9 +70,9 @@ module booth_multiplier #(
   output logic                          busy_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Current and next 
   localparam CRT = 0;
@@ -89,9 +89,9 @@ module booth_multiplier #(
   // accomodate the shifted bits.
   localparam TOTAL_BITS = DATA_WIDTH + (SHIFT_AMOUNT - 1);
 
-///////////////
+//-----------//
 // FSM LOGIC //
-///////////////
+//-----------//
   
   // Possible states of FSM
   typedef enum logic {IDLE, MULTIPLY} fsm_state_e;
@@ -111,19 +111,16 @@ module booth_multiplier #(
         end
 
       always_ff @(posedge clk_i)
-        begin : STATE_REGISTER
-          if (!rst_n_i)
-            begin 
-              state[CRT] <= IDLE;
-            end
-          if (clk_en_i)
-            begin 
-              state[CRT] <= state[NXT];
-            end           
-        end : STATE_REGISTER
+        begin : state_register
+          if (!rst_n_i) begin 
+            state[CRT] <= IDLE;
+          end if (clk_en_i) begin 
+            state[CRT] <= state[NXT];
+          end           
+        end : state_register
 
       always_comb 
-        begin : NEXT_STATE_LOGIC
+        begin : next_state_logic
           case (state[CRT])
             IDLE:     state[NXT] = (!rst_n_dly) ? IDLE : MULTIPLY;
             
@@ -131,11 +128,11 @@ module booth_multiplier #(
 
             default:  state[NXT] = IDLE;
           endcase
-        end : NEXT_STATE_LOGIC
+        end : next_state_logic
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   typedef struct packed {
       logic signed [TOTAL_BITS - 1:0] _P; //Partial product
@@ -155,17 +152,18 @@ module booth_multiplier #(
   reg_pair_s partial_product_sh;
   
       always_comb 
-        begin : NEXT_OUTPUT_LOGIC
+        begin : next_output_logic
           case (state[CRT])
-            IDLE:     begin 
-                        // Initialize values
-                        reg_pair_ff[NXT]._P = 'b0;
-                        reg_pair_ff[NXT]._A = operand_A_i;
-                        reg_pair_ff[NXT]._L = 1'b0;
-                        // Sign extend 
-                        reg_B_ff[NXT] = $signed(operand_B_i);
-                        counter[NXT] = 'b0;
-                      end
+            IDLE: begin 
+                    // Initialize values
+                    reg_pair_ff[NXT]._P = 'b0;
+                    reg_pair_ff[NXT]._A = operand_A_i;
+                    reg_pair_ff[NXT]._L = 1'b0;
+                    
+                    // Sign extend 
+                    reg_B_ff[NXT] = $signed(operand_B_i);
+                    counter[NXT] = 'b0;
+                  end
 
             MULTIPLY: begin 
                         // Update the partial product every cycle
@@ -184,175 +182,162 @@ module booth_multiplier #(
                         counter[NXT] = 'bX;
                       end
           endcase
-        end : NEXT_OUTPUT_LOGIC
+        end : next_output_logic
 
       always_ff @(posedge clk_i)
-        begin : OUTPUT_REGISTER
-          if (!rst_n_i)
-            begin 
-              reg_pair_ff[CRT] <= 'b0;
-              reg_B_ff[CRT] <= 'b0;
-            end            
-          else if (clk_en_i)  
-            begin
-              reg_pair_ff[CRT] <= reg_pair_ff[NXT];
-              reg_B_ff[CRT] <= reg_B_ff[NXT];              
-            end
-        end : OUTPUT_REGISTER
+        begin : output_register
+          if (!rst_n_i) begin 
+            reg_pair_ff[CRT] <= 'b0;
+            reg_B_ff[CRT] <= 'b0;
+          end else if (clk_en_i) begin
+            reg_pair_ff[CRT] <= reg_pair_ff[NXT];
+            reg_B_ff[CRT] <= reg_B_ff[NXT];              
+          end
+        end : output_register
   
   // Select the correct signal to add to P register    
   logic [TOTAL_BITS - 1:0] reg_B_sel;
 
   generate
 
-    if (RADIX == 2)
-      begin 
-        always_comb 
-          begin
-            case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
-              2'b00,
-              2'b11:    reg_B_sel = 'b0;
+    if (RADIX == 2) begin 
+      always_comb 
+        begin
+          case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
+            2'b00,
+            2'b11:    reg_B_sel = 'b0;
 
-              2'b01:    reg_B_sel = reg_B_ff[CRT]; 
+            2'b01:    reg_B_sel = reg_B_ff[CRT]; 
 
-              2'b10:    reg_B_sel = -reg_B_ff[CRT];  
-            endcase
+            2'b10:    reg_B_sel = -reg_B_ff[CRT];  
+          endcase
 
-            partial_product = reg_pair_ff[CRT]._P + reg_B_sel; 
-            partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
-          end
-      end
-    else if (RADIX == 4)
-      begin 
-        always_comb 
-          begin  
-            case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
-              3'b000,
-              3'b111:   reg_B_sel = 'b0;
+          partial_product = reg_pair_ff[CRT]._P + reg_B_sel; 
+          partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
+        end
+    end else if (RADIX == 4) begin 
+      always_comb 
+        begin  
+          case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
+            3'b000,
+            3'b111:   reg_B_sel = 'b0;
 
-              3'b001,
-              3'b010:   reg_B_sel = reg_B_ff[CRT];
+            3'b001,
+            3'b010:   reg_B_sel = reg_B_ff[CRT];
 
-              3'b011:   reg_B_sel = reg_B_ff[CRT] << 1;   
+            3'b011:   reg_B_sel = reg_B_ff[CRT] << 1;   
 
-              3'b100:   reg_B_sel = -(reg_B_ff[CRT] << 1);   
+            3'b100:   reg_B_sel = -(reg_B_ff[CRT] << 1);   
 
-              3'b101,
-              3'b110:   reg_B_sel = -reg_B_ff[CRT];
-            endcase
+            3'b101,
+            3'b110:   reg_B_sel = -reg_B_ff[CRT];
+          endcase
 
-            partial_product = reg_pair_ff[CRT]._P + reg_B_sel;
-            partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
-          end
-      end
-    else if (RADIX == 8)
-      begin 
-        always_comb 
-          begin 
-            case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
-              4'b0000,
-              4'b1111:    reg_B_sel = 'b0;
+          partial_product = reg_pair_ff[CRT]._P + reg_B_sel;
+          partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
+        end
+    end else if (RADIX == 8) begin 
+      always_comb 
+        begin 
+          case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
+            4'b0000,
+            4'b1111:    reg_B_sel = 'b0;
 
-              4'b0001,
-              4'b0010:    reg_B_sel = reg_B_ff[CRT];
+            4'b0001,
+            4'b0010:    reg_B_sel = reg_B_ff[CRT];
 
-              4'b0011,
-              4'b0100:    reg_B_sel = (reg_B_ff[CRT] << 1);   
+            4'b0011,
+            4'b0100:    reg_B_sel = (reg_B_ff[CRT] << 1);   
 
-              4'b0101,
-              4'b0110:    reg_B_sel = ((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);
+            4'b0101,
+            4'b0110:    reg_B_sel = ((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);
 
-              4'b0111:    reg_B_sel = (reg_B_ff[CRT] << 2);
+            4'b0111:    reg_B_sel = (reg_B_ff[CRT] << 2);
 
-              4'b1000:    reg_B_sel = -(reg_B_ff[CRT] << 2);
+            4'b1000:    reg_B_sel = -(reg_B_ff[CRT] << 2);
 
-              4'b1001,
-              4'b1010:    reg_B_sel = -((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);
+            4'b1001,
+            4'b1010:    reg_B_sel = -((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);
 
-              4'b1011,
-              4'b1100:    reg_B_sel = -(reg_B_ff[CRT] << 1);   
+            4'b1011,
+            4'b1100:    reg_B_sel = -(reg_B_ff[CRT] << 1);   
                       
-              4'b1101,
-              4'b1110:    reg_B_sel = -reg_B_ff[CRT];
-            endcase
+            4'b1101,
+            4'b1110:    reg_B_sel = -reg_B_ff[CRT];
+          endcase
 
-            partial_product = reg_pair_ff[CRT]._P + reg_B_sel;
-            partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
-          end
-      end
-    else if (RADIX == 16)
-      begin 
-        always_comb 
-          begin
-            case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
-              5'b00000,
-              5'b11111:    reg_B_sel = 'b0;   
+          partial_product = reg_pair_ff[CRT]._P + reg_B_sel;
+          partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
+        end
+    end else if (RADIX == 16) begin 
+      always_comb 
+        begin
+          case ({reg_pair_ff[CRT]._A[RECODED_BITS - 1:0], reg_pair_ff[CRT]._L})    
+            5'b00000,
+            5'b11111:    reg_B_sel = 'b0;   
 
-              5'b00001,
-              5'b00010:    reg_B_sel = reg_B_ff[CRT];   
+            5'b00001,
+            5'b00010:    reg_B_sel = reg_B_ff[CRT];   
                       
-              5'b00011,
-              5'b00100:    reg_B_sel = (reg_B_ff[CRT] << 1);   
+            5'b00011,
+            5'b00100:    reg_B_sel = (reg_B_ff[CRT] << 1);   
 
-              5'b00101,
-              5'b00110:    reg_B_sel = ((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);    
+            5'b00101,
+            5'b00110:    reg_B_sel = ((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);    
 
-              5'b00111,
-              5'b01000:    reg_B_sel = (reg_B_ff[CRT] << 2);   
+            5'b00111,
+            5'b01000:    reg_B_sel = (reg_B_ff[CRT] << 2);   
 
-              5'b01001,
-              5'b01010:    reg_B_sel = ((reg_B_ff[CRT] << 2) + reg_B_ff[CRT]);    
+            5'b01001,
+            5'b01010:    reg_B_sel = ((reg_B_ff[CRT] << 2) + reg_B_ff[CRT]);    
 
-              5'b01011,
-              5'b01100:    reg_B_sel = ((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1));   
+            5'b01011,
+            5'b01100:    reg_B_sel = ((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1));   
 
-              5'b01101,
-              5'b01110:    reg_B_sel = ((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);   
+            5'b01101,
+            5'b01110:    reg_B_sel = ((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);   
 
-              5'b01111:    reg_B_sel = (reg_B_ff[CRT] << 3);    
+            5'b01111:    reg_B_sel = (reg_B_ff[CRT] << 3);    
 
-              5'b10000:    reg_B_sel = -(reg_B_ff[CRT] << 3);    
+            5'b10000:    reg_B_sel = -(reg_B_ff[CRT] << 3);    
                       
-              5'b10001,
-              5'b10010:    reg_B_sel = -((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);    
+            5'b10001,
+            5'b10010:    reg_B_sel = -((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);    
 
-              5'b10011,
-              5'b10100:    reg_B_sel = -((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1));    
+            5'b10011,
+            5'b10100:    reg_B_sel = -((reg_B_ff[CRT] << 2) + (reg_B_ff[CRT] << 1));    
 
-              5'b10101,
-              5'b10110:    reg_B_sel = -((reg_B_ff[CRT] << 2) + reg_B_ff[CRT]);   
+            5'b10101,
+            5'b10110:    reg_B_sel = -((reg_B_ff[CRT] << 2) + reg_B_ff[CRT]);   
 
-              5'b10111,
-              5'b11000:    reg_B_sel = -(reg_B_ff[CRT] << 2);    
+            5'b10111,
+            5'b11000:    reg_B_sel = -(reg_B_ff[CRT] << 2);    
 
-              5'b11001,
-              5'b11010:    reg_B_sel = -((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);    
+            5'b11001,
+            5'b11010:    reg_B_sel = -((reg_B_ff[CRT] << 1) + reg_B_ff[CRT]);    
 
-              5'b11011,
-              5'b11100:    reg_B_sel = -(reg_B_ff[CRT] << 1);    
+            5'b11011,
+            5'b11100:    reg_B_sel = -(reg_B_ff[CRT] << 1);    
 
-              5'b11101,
-              5'b11110:    reg_B_sel = -reg_B_ff[CRT];   
-            endcase
+            5'b11101,
+            5'b11110:    reg_B_sel = -reg_B_ff[CRT];   
+          endcase
 
-            partial_product = reg_pair_ff[CRT]._P + reg_B_sel;
-            partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
-          end
-      end
+          partial_product = reg_pair_ff[CRT]._P + reg_B_sel;
+          partial_product_sh = $signed({partial_product, reg_pair_ff[CRT]._A, reg_pair_ff[CRT]._L}) >>> SHIFT_AMOUNT;
+        end
+    end
 
   endgenerate 
 
       always_ff @(posedge clk_i)
-        begin : COUNTER
-          if (!rst_n_i)
-            begin
-              counter[CRT] <= 'b0;
-            end
-          else if (clk_en_i)
-            begin 
-              counter[CRT] <= counter[NXT];
-            end           
-        end : COUNTER
+        begin : counter_logic
+          if (!rst_n_i) begin
+            counter[CRT] <= 'b0;
+          end else if (clk_en_i) begin 
+            counter[CRT] <= counter[NXT];
+          end           
+        end : counter_logic
   
   logic [CRT:NXT] valid_entry;
   
@@ -360,16 +345,13 @@ module booth_multiplier #(
   assign valid_entry[NXT] = (state[CRT] == IDLE) ? valid_entry_i : valid_entry[CRT];
 
         always_ff @(posedge clk_i) 
-          begin : VALID_REGISTER
-            if (!rst_n_i)
-              begin 
-                valid_entry[CRT] <= 'b0;
-              end
-            else if (clk_en_i)
-              begin 
-                valid_entry[CRT] <= valid_entry[NXT];
-              end
-          end : VALID_REGISTER
+          begin : valid_register
+            if (!rst_n_i) begin 
+              valid_entry[CRT] <= 'b0;
+            end else if (clk_en_i) begin 
+              valid_entry[CRT] <= valid_entry[NXT];
+            end
+          end : valid_register
 
   assign result_o = {reg_pair_ff[CRT]._P[DATA_WIDTH - 1:0], reg_pair_ff[CRT]._A};
   
