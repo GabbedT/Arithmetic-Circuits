@@ -59,16 +59,16 @@ module carry_lookahead_adder #(
   output logic                    carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Total number of CLA block 
   localparam CLA_BLOCKS = DATA_WIDTH / BLOCK_WIDTH;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry input / output of every CLA block
   logic [CLA_BLOCKS - 1:0] cla_carry;
@@ -76,16 +76,15 @@ module carry_lookahead_adder #(
   genvar i;
   generate
 
-    for (i = 0; i < CLA_BLOCKS; i++)
-      begin 
-        CLA_block N_th_CLA_block(
-          .cla_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
-          .cla_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
-          .cla_carry_i     ((i == 0) ? carry_i : cla_carry[i - 1]        ),
-          .cla_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]   ),
-          .cla_carry_o     (cla_carry[i]                                 )
-        );
-      end
+    for (i = 0; i < CLA_BLOCKS; i++) begin 
+      CLA_block N_th_CLA_block (
+        .cla_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
+        .cla_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
+        .cla_carry_i     ((i == 0) ? carry_i : cla_carry[i - 1]        ),
+        .cla_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]   ),
+        .cla_carry_o     (cla_carry[i]                                 )
+      );
+    end
 
   endgenerate
 
@@ -108,17 +107,17 @@ module CLA_block #(
   output logic                     cla_carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Nets inout
   localparam IN = 1;
   localparam OUT = 0;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry bit produced by each sum bit 
   logic [IN:OUT][BLOCK_WIDTH - 1:0] carry;
@@ -127,47 +126,38 @@ module CLA_block #(
   logic [BLOCK_WIDTH - 1:0] AB_xor;
 
       // Ripple carry
-      always_comb 
-        begin : RC_ADDER_LOGIC
-          for (int i = 0; i < BLOCK_WIDTH; i++)
-            begin 
-              AB_xor[i] = cla_operand_A_i[i] ^ cla_operand_B_i[i];
+      always_comb begin : rc_adder_logic
+        for (int i = 0; i < BLOCK_WIDTH; i++) begin 
+          AB_xor[i] = cla_operand_A_i[i] ^ cla_operand_B_i[i];
 
-              // The first Full-Adder takes the external carry in
-              carry[IN][i] = (i == 0) ? cla_carry_i : carry[OUT][i - 1];
-              cla_result_o[i] = AB_xor[i] ^ carry[IN][i];
-              carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (cla_operand_A_i[i] & cla_operand_B_i[i]);
-            end
-        end : RC_ADDER_LOGIC
+          // The first Full-Adder takes the external carry in
+          carry[IN][i] = (i == 0) ? cla_carry_i : carry[OUT][i - 1];
+          cla_result_o[i] = AB_xor[i] ^ carry[IN][i];
+          carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (cla_operand_A_i[i] & cla_operand_B_i[i]);
+        end
+      end : rc_adder_logic
 
   // Generation and propagation nets
   logic [BLOCK_WIDTH - 1:0] c_generate, c_propagate;
   logic [BLOCK_WIDTH - 2:0] and_cgen, or_cgen; 
 
-      always_comb
-        begin : CARRY_LOGIC
-          // Generate / Propagate signals
-          for (int j = 0; j < BLOCK_WIDTH; j++)
-            begin 
-              c_generate[j] = cla_operand_A_i[j] & cla_operand_B_i[j]; 
-              c_propagate[j] = cla_operand_A_i[j] | cla_operand_B_i[j]; 
-            end
+      always_comb begin : carry_logic
+        for (int j = 0; j < BLOCK_WIDTH; j++) begin : generate_propagate_logic 
+          c_generate[j] = cla_operand_A_i[j] & cla_operand_B_i[j]; 
+          c_propagate[j] = cla_operand_A_i[j] | cla_operand_B_i[j]; 
+        end : generate_propagate_logic
 
           // Carry generation logic
-          for (int k = 0; k < BLOCK_WIDTH - 1; k++)
-            begin 
-              if (k == 0)
-                begin 
-                  and_cgen[0] = c_generate[0] & c_propagate[1];
-                  or_cgen[0] = and_cgen[0] | c_generate[1];
-                end
-              else
-                begin 
-                  and_cgen[k] = or_cgen[k - 1] & c_propagate[k + 1];
-                  or_cgen[k] = and_cgen[k] | c_generate[k + 1];
-                end
+          for (int k = 0; k < BLOCK_WIDTH - 1; k++) begin : carry_gen_logic
+            if (k == 0) begin 
+              and_cgen[0] = c_generate[0] & c_propagate[1];
+              or_cgen[0] = and_cgen[0] | c_generate[1];
+            end else begin 
+              and_cgen[k] = or_cgen[k - 1] & c_propagate[k + 1];
+              or_cgen[k] = and_cgen[k] | c_generate[k + 1];
             end
-        end : CARRY_LOGIC
+          end : carry_gen_logic
+      end : carry_logic
 
   assign cla_carry_o = or_cgen[BLOCK_WIDTH - 2] | (&c_propagate & cla_carry_i);
 
