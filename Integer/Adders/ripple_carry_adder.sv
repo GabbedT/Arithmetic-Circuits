@@ -52,17 +52,17 @@ module ripple_carry_adder #(
   output logic                            carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Nets inout
   localparam IN = 1;
   localparam OUT = 0;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry bit produced by each sum bit
   logic [IN:OUT][DATA_WIDTH - 1:0] carry;
@@ -70,21 +70,19 @@ module ripple_carry_adder #(
   // Result of the xor between A and B
   logic [DATA_WIDTH - 1:0] AB_xor;
 
-    always_comb
-      begin 
-        // Consider each iteration of this for cycle a separate
-        // full adder block. "carry[OUT][i - 1]" is the carry in
-        // of the next i-th bit full adder block
-        for (int i = 0; i < DATA_WIDTH; i++) 
-          begin
-            AB_xor[i] = operand_A_i[i] ^ operand_B_i[i];
+    always_comb begin 
+      // Consider each iteration of this for cycle a separate
+      // full adder block. "carry[OUT][i - 1]" is the carry in
+      // of the next i-th bit full adder block
+      for (int i = 0; i < DATA_WIDTH; i++) begin
+        AB_xor[i] = operand_A_i[i] ^ operand_B_i[i];
 
-            // The first Full-Adder takes the external carry in
-            carry[IN][i] = (i == 0) ? carry_i : carry[OUT][i - 1];
-            result_o[i] = AB_xor[i] ^ carry[IN][i];
-            carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (operand_A_i[i] & operand_B_i[i]);
-          end
+        // The first Full-Adder takes the external carry in
+        carry[IN][i] = (i == 0) ? carry_i : carry[OUT][i - 1];
+        result_o[i] = AB_xor[i] ^ carry[IN][i];
+        carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (operand_A_i[i] & operand_B_i[i]);
       end
+    end
         
   assign carry_o = carry[OUT][DATA_WIDTH - 1];   
 
