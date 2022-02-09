@@ -46,11 +46,13 @@
 
 `timescale 1ns/1ps
 
+`include "BitVector.sv"
+
 module adder_tb ();
 
-////////////////////////  
+//--------------------//  
 // MODULES PARAMETERS //
-////////////////////////
+//--------------------//
 
   // Ripple Carry Adder
   localparam RC_ADDER = 0;
@@ -68,9 +70,9 @@ module adder_tb ();
   // output in blocks of BLOCK_WIDTH bits 
   localparam BLOCK_WIDTH = 4;
 
-//////////////////////////
+//----------------------//
 // TESTBENCH PARAMETERS //
-//////////////////////////
+//----------------------//
   
   // Enable contraint on test input
   localparam ENABLE_CONSTRAINT = 0;
@@ -84,9 +86,9 @@ module adder_tb ();
   // Select the DUT
   localparam ADDER_TYPE = CSK_ADDER;
 
-//////////////
+//----------//
 // DUT Nets //
-//////////////
+//----------//
 
   // Inputs
   logic [DATA_WIDTH - 1:0] operand_A_i;
@@ -98,22 +100,15 @@ module adder_tb ();
   logic                    carry_o;
   
   
-  if (ADDER_TYPE == RC_ADDER)
-    begin
-      ripple_carry_adder dut (.*);
-    end
-  else if (ADDER_TYPE == CLA_ADDER)
-    begin
-      carry_lookahead_adder dut (.*);
-    end
-  else if (ADDER_TYPE == CSK_ADDER)
-    begin 
-      carry_skip_adder dut (.*);
-    end
-  else if (ADDER_TYPE == CSEL_ADDER)
-    begin 
-      carry_select_adder dut (.*);
-    end
+  if (ADDER_TYPE == RC_ADDER) begin
+    ripple_carry_adder dut (.*);
+  end else if (ADDER_TYPE == CLA_ADDER) begin
+    carry_lookahead_adder dut (.*);
+  end else if (ADDER_TYPE == CSK_ADDER) begin 
+    carry_skip_adder dut (.*);
+  end else if (ADDER_TYPE == CSEL_ADDER) begin 
+    carry_select_adder dut (.*);
+  end
   
   // Create two object used to simulate the 
   // wanted behaviour of the adder
@@ -143,69 +138,58 @@ module adder_tb ();
       end
 
       initial begin
-        for (int i = 0; i < TEST_NUMBER; i++)
-          begin 
-            // Randomize the objects
-            item_1.randomize();
-            item_2.randomize();
+        for (int i = 0; i < TEST_NUMBER; i++) begin 
+          // Randomize the objects
+          item_1.randomize();
+          item_2.randomize();
 
-            // Perform an addition
-            if (i < TEST_NUMBER / 2)
-              begin 
-                // Assign the randomized value to the inputs
-                operand_A_i = item_1.data;
-                operand_B_i = item_2.data;
+          // Perform an addition
+          if (i < TEST_NUMBER / 2) begin 
+            // Assign the randomized value to the inputs
+            operand_A_i = item_1.data;
+            operand_B_i = item_2.data;
 
-                result = item_1.data + item_2.data;
+            result = item_1.data + item_2.data;
 
-                // Wait 1 clock cycle
-                #CLK_CYCLE;
+            // Wait 1 clock cycle
+            #CLK_CYCLE;
 
-                // Check the result (compare the DUT with the golden model)
-                assert ({carry_o, result_o} == result) 
-                  begin 
-                    testPassed++;
-                  end
-                else
-                  begin 
-                    $display("Input 1: ");
-                    item_1.printData("D");
-                    $display("Input 2: ");
-                    item_2.printData("D");
+            // Check the result (compare the DUT with the golden model)
+            assert ({carry_o, result_o} == result) begin 
+              testPassed++;
+            end else begin 
+              $display("Input 1: ");
+              item_1.printData("D");
+              $display("Input 2: ");
+              item_2.printData("D");
 
-                    $display("TEST %0d NOT PASSED AT TIME: %0t ns \n VALUE: %0d \n EXPECTED: %0d \n\n", i, $time, result_o, item_1.add(item_2.data));
-                    testError++;
-                  end        
-              end
-            // Perform a subtraction
-            else 
-              begin 
-                // Assign the randomized value to the inputs
-                operand_A_i = item_1.data;
-                operand_B_i = item_2.twoComplement();
+              $display("TEST %0d NOT PASSED AT TIME: %0t ns \n VALUE: %0d \n EXPECTED: %0d \n\n", i, $time, result_o, item_1.add(item_2.data));
+              testError++;
+            end        
+          end else begin 
+            // Assign the randomized value to the inputs
+            operand_A_i = item_1.data;
+            operand_B_i = item_2.twoComplement();
 
-                result = item_1.data + item_2.data;
+            result = item_1.data + item_2.data;
 
-                // Wait 1 clock cycle
-                #CLK_CYCLE;
+            // Wait 1 clock cycle
+            #CLK_CYCLE;
 
-                // Check the result (compare the DUT with the golden model)
-                assert ({carry_o, result_o} == result) 
-                  begin 
-                    testPassed++;
-                  end
-                else 
-                  begin  
-                    $display("Input 1: ");
-                    item_1.printSignedData("D");
-                    $display("Input 2: ");
-                    item_2.printSignedData("D");
+            // Check the result (compare the DUT with the golden model)
+            assert ({carry_o, result_o} == result) begin 
+              testPassed++;
+            end else begin  
+              $display("Input 1: ");
+              item_1.printSignedData("D");
+              $display("Input 2: ");
+              item_2.printSignedData("D");
 
-                    $display("TEST %0d NOT PASSED AT TIME: %0t ns \n VALUE: %0d \n EXPECTED: %0d \n\n", i, $time, result_o, item_1.sub(item_2.data));
-                    testError++;
-                  end
-              end      
-          end
+              $display("TEST %0d NOT PASSED AT TIME: %0t ns \n VALUE: %0d \n EXPECTED: %0d \n\n", i, $time, result_o, item_1.sub(item_2.data));
+              testError++;
+            end
+          end      
+        end
         
         // Display the final result of the testbench
         $display("[TESTBENCH COMPLETED] \n Number of test passed: %0d \n Number of test failed: %0d", testPassed, testError);
