@@ -59,16 +59,16 @@ module carry_skip_adder #(
   output logic                    carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Total number of CSA block 
   localparam CSA_BLOCKS = DATA_WIDTH / BLOCK_WIDTH;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry input / output of every CSA block
   logic [CSA_BLOCKS - 1:0] csa_carry;
@@ -76,16 +76,15 @@ module carry_skip_adder #(
   genvar i;
   generate
 
-    for (i = 0; i < CSA_BLOCKS; i++)
-      begin 
-        CSKA_block N_th_CSA_block(
-          .csa_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
-          .csa_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
-          .csa_carry_i     ((i == 0) ? carry_i : csa_carry[i - 1]        ),
-          .csa_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]   ),
-          .csa_carry_o     (csa_carry[i]                                 )
-        );
-      end
+    for (i = 0; i < CSA_BLOCKS; i++) begin 
+      CSKA_block N_th_CSA_block(
+        .csa_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
+        .csa_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
+        .csa_carry_i     ((i == 0) ? carry_i : csa_carry[i - 1]        ),
+        .csa_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]   ),
+        .csa_carry_o     (csa_carry[i]                                 )
+      );
+    end
 
   endgenerate
   
@@ -108,17 +107,17 @@ module CSKA_block #(
   output logic                     csa_carry_o
 );
 
-////////////////
+//------------//
 // PARAMETERS //
-////////////////
+//------------//
 
   // Nets inout
   localparam IN = 1;
   localparam OUT = 0;
 
-////////////////
+//------------//
 //  DATAPATH  //
-////////////////
+//------------//
 
   // Carry bit produced by each sum bit 
   logic [IN:OUT][BLOCK_WIDTH - 1:0] carry;
@@ -127,18 +126,16 @@ module CSKA_block #(
   logic [BLOCK_WIDTH - 1:0] AB_xor;
 
       // Ripple carry
-      always_comb 
-        begin : RC_ADDER_LOGIC
-          for (int i = 0; i < BLOCK_WIDTH; i++)
-            begin 
-              AB_xor[i] = csa_operand_A_i[i] ^ csa_operand_B_i[i];
+      always_comb begin : rc_adder_logic
+        for (int i = 0; i < BLOCK_WIDTH; i++) begin 
+          AB_xor[i] = csa_operand_A_i[i] ^ csa_operand_B_i[i];
 
-              // The first Full-Adder takes the external carry in
-              carry[IN][i] = (i == 0) ? csa_carry_i : carry[OUT][i - 1];
-              csa_result_o[i] = AB_xor[i] ^ carry[IN][i];
-              carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (csa_operand_A_i[i] & csa_operand_B_i[i]);
-            end
-        end : RC_ADDER_LOGIC
+          // The first Full-Adder takes the external carry in
+          carry[IN][i] = (i == 0) ? csa_carry_i : carry[OUT][i - 1];
+          csa_result_o[i] = AB_xor[i] ^ carry[IN][i];
+          carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (csa_operand_A_i[i] & csa_operand_B_i[i]);
+        end
+      end : rc_adder_logic
 
   // Selection carry logic block
   logic select_carry;
