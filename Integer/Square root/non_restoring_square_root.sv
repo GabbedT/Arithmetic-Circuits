@@ -163,11 +163,9 @@ module non_restoring_square_root #(parameter DATA_WIDTH = 32)
                   // If the remainder is negative
                   if (remainder[CRT][DATA_WIDTH]) begin 
                     rem_new = (remainder[CRT] << 2) | ((radicand_out >> counter_2) & 'd3);
-
                     remainder[NXT] = rem_new + ((root[CRT] << 2) | 'd3);               
                   end else begin 
                     rem_new = (remainder[CRT] << 2) | ((radicand_out >> counter_2) & 'd3);
-
                     remainder[NXT] = rem_new - ((root[CRT] << 2) | 'b1);
                   end
 
