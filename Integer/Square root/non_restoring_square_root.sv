@@ -123,13 +123,13 @@ module non_restoring_square_root #(parameter DATA_WIDTH = 32)
         end
       end : state_register
 
-      always_ff @(posedge clk_i) begin : counter
+      always_ff @(posedge clk_i) begin : counter_register
         if (!rst_n_i) begin 
           counter[CRT] <= ITERATIONS - 1;
         end else if (clk_en_i) begin
           counter[CRT] <= counter[NXT]; 
         end
-      end : counter
+      end : counter_register
 
   logic [$clog2(ITERATIONS):0] counter_2;   
 
@@ -137,6 +137,7 @@ module non_restoring_square_root #(parameter DATA_WIDTH = 32)
   assign counter_2 = counter << 1;
 
   logic [DATA_WIDTH:0] rem_new;
+  logic signed [DATA_WIDTH:0] remainder_rest;
 
       always_comb begin : next_state_logic
         // Default values
@@ -162,10 +163,10 @@ module non_restoring_square_root #(parameter DATA_WIDTH = 32)
                   
                   // If the remainder is negative
                   if (remainder[CRT][DATA_WIDTH]) begin 
-                    rem_new = (remainder[CRT] << 2) | ((radicand_out >> counter_2) & 'd3);
+                    rem_new = (remainder[CRT] << 2) | ((radicand[CRT] >> counter_2) & 'd3);
                     remainder[NXT] = rem_new + ((root[CRT] << 2) | 'd3);               
                   end else begin 
-                    rem_new = (remainder[CRT] << 2) | ((radicand_out >> counter_2) & 'd3);
+                    rem_new = (remainder[CRT] << 2) | ((radicand[CRT] >> counter_2) & 'd3);
                     remainder[NXT] = rem_new - ((root[CRT] << 2) | 'b1);
                   end
 
@@ -187,8 +188,6 @@ module non_restoring_square_root #(parameter DATA_WIDTH = 32)
 //-----------------//
 // RESTORING LOGIC //
 //-----------------//
-
-  logic signed [DATA_WIDTH:0] remainder_rest;
 
   assign remainder_rest = remainder[CRT][DATA_WIDTH] ? (remainder[CRT] + ((root[CRT] << 1'b1) | 'b1)) : remainder[CRT];
 
