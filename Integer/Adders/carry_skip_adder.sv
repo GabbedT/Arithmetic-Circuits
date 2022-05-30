@@ -28,7 +28,6 @@
 // -----------------------------------------------------------------------------------
 // RELEASE HISTORY
 // VERSION : 1.0 
-// DATE : 16 / 10 / 2021
 // DESCRIPTION : Carry Skip Adder, it perform binary addition in O(sqrt(n)) time. 
 //               In this file there are two modules: one for the single block and one  
 //               for the entire adder (which is composed by several CSA blocks).
@@ -44,105 +43,105 @@
 
 module carry_skip_adder #(
 
-  // Number of bits in a word
-  parameter DATA_WIDTH = 32,
+    /* Number of bits in a word */
+    parameter DATA_WIDTH = 32,
 
-  // Number of bits computed in a CSA block
-  parameter BLOCK_WIDTH = 4
+    /* Number of bits computed in a CSA block */
+    parameter BLOCK_WIDTH = 4
 )
 (
-  input  logic [DATA_WIDTH - 1:0] operand_A_i,
-  input  logic [DATA_WIDTH - 1:0] operand_B_i,
-  input  logic                    carry_i,
+    input  logic [DATA_WIDTH - 1:0] operand_A_i,
+    input  logic [DATA_WIDTH - 1:0] operand_B_i,
+    input  logic                    carry_i,
 
-  output logic [DATA_WIDTH - 1:0] result_o,
-  output logic                    carry_o
+    output logic [DATA_WIDTH - 1:0] result_o,
+    output logic                    carry_o
 );
 
 //------------//
 // PARAMETERS //
 //------------//
 
-  // Total number of CSA block 
-  localparam CSA_BLOCKS = DATA_WIDTH / BLOCK_WIDTH;
+    /* Total number of CSA block */
+    localparam CSA_BLOCKS = DATA_WIDTH / BLOCK_WIDTH;
 
 //------------//
 //  DATAPATH  //
 //------------//
 
-  // Carry input / output of every CSA block
-  logic [CSA_BLOCKS - 1:0] csa_carry;
+    /* Carry input / output of every CSA block */
+    logic [CSA_BLOCKS - 1:0] csa_carry;
 
-  genvar i;
-  generate
+    genvar i;
+    generate
 
-    for (i = 0; i < CSA_BLOCKS; i++) begin 
-      CSKA_block N_th_CSA_block(
-        .csa_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
-        .csa_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
-        .csa_carry_i     ((i == 0) ? carry_i : csa_carry[i - 1]        ),
-        .csa_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]   ),
-        .csa_carry_o     (csa_carry[i]                                 )
-      );
-    end
+        for (i = 0; i < CSA_BLOCKS; i++) begin 
+            CSKA_block N_th_CSA_block(
+              .csa_operand_A_i (operand_A_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
+              .csa_operand_B_i (operand_B_i[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]),
+              .csa_carry_i     ((i == 0) ? carry_i : csa_carry[i - 1]        ),
+              .csa_result_o    (result_o[(BLOCK_WIDTH * i) +: BLOCK_WIDTH]   ),
+              .csa_carry_o     (csa_carry[i]                                 )
+            );
+        end
 
-  endgenerate
-  
-  assign carry_o = csa_carry[CSA_BLOCKS - 1];
+    endgenerate
 
-endmodule
+    assign carry_o = csa_carry[CSA_BLOCKS - 1];
+
+endmodule : carry_skip_adder
 
 
 module CSKA_block #(
 
-  // Number of bits computed in a CSA block
-  BLOCK_WIDTH = 4
+    /* Number of bits computed in a CSA block */
+    BLOCK_WIDTH = 4
 )
 (
-  input  logic [BLOCK_WIDTH - 1:0] csa_operand_A_i,
-  input  logic [BLOCK_WIDTH - 1:0] csa_operand_B_i,
-  input  logic                     csa_carry_i,
+    input  logic [BLOCK_WIDTH - 1:0] csa_operand_A_i,
+    input  logic [BLOCK_WIDTH - 1:0] csa_operand_B_i,
+    input  logic                     csa_carry_i,
 
-  output logic [BLOCK_WIDTH - 1:0] csa_result_o,
-  output logic                     csa_carry_o
+    output logic [BLOCK_WIDTH - 1:0] csa_result_o,
+    output logic                     csa_carry_o
 );
 
 //------------//
 // PARAMETERS //
 //------------//
 
-  // Nets inout
-  localparam IN = 1;
-  localparam OUT = 0;
+    /* Nets inout */
+    localparam IN = 1;
+    localparam OUT = 0;
 
 //------------//
 //  DATAPATH  //
 //------------//
 
-  // Carry bit produced by each sum bit 
-  logic [IN:OUT][BLOCK_WIDTH - 1:0] carry;
+    /* Carry bit produced by each sum bit */
+    logic [IN:OUT][BLOCK_WIDTH - 1:0] carry;
 
-  // Result of the xor between A and B
-  logic [BLOCK_WIDTH - 1:0] AB_xor;
+    /* Result of the xor between A and B */
+    logic [BLOCK_WIDTH - 1:0] AB_xor;
 
-      // Ripple carry
-      always_comb begin : rc_adder_logic
-        for (int i = 0; i < BLOCK_WIDTH; i++) begin 
-          AB_xor[i] = csa_operand_A_i[i] ^ csa_operand_B_i[i];
+        /* Ripple carry */
+        always_comb begin : rc_adder_logic
+            for (int i = 0; i < BLOCK_WIDTH; i++) begin 
+                AB_xor[i] = csa_operand_A_i[i] ^ csa_operand_B_i[i];
 
-          // The first Full-Adder takes the external carry in
-          carry[IN][i] = (i == 0) ? csa_carry_i : carry[OUT][i - 1];
-          csa_result_o[i] = AB_xor[i] ^ carry[IN][i];
-          carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (csa_operand_A_i[i] & csa_operand_B_i[i]);
-        end
-      end : rc_adder_logic
+                /* The first Full-Adder takes the external carry in */
+                carry[IN][i] = (i == 0) ? csa_carry_i : carry[OUT][i - 1];
+                csa_result_o[i] = AB_xor[i] ^ carry[IN][i];
+                carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (csa_operand_A_i[i] & csa_operand_B_i[i]);
+            end
+        end : rc_adder_logic
 
-  // Selection carry logic block
-  logic select_carry;
+    /* Selection carry logic block */
+    logic select_carry;
 
-  assign select_carry = &AB_xor;
+    assign select_carry = &AB_xor;
 
-  // Select the carry out
-  assign csa_carry_o = select_carry ? csa_carry_i : carry[OUT][BLOCK_WIDTH - 1];
+    /* Select the carry out */
+    assign csa_carry_o = select_carry ? csa_carry_i : carry[OUT][BLOCK_WIDTH - 1];
 
-endmodule
+endmodule : CSKA_block
