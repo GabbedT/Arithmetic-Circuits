@@ -28,7 +28,6 @@
 // -----------------------------------------------------------------------------
 // RELEASE HISTORY
 // VERSION : 1.0 
-// DATE : 28 / 10 / 2021
 // DESCRIPTION : Ripple Carry Adder module, it perform addition in O(n) time
 // -----------------------------------------------------------------------------
 // KEYWORDS :
