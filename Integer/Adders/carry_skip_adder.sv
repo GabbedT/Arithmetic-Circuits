@@ -48,8 +48,7 @@ module carry_skip_adder #(
 
     /* Number of bits computed in a CSA block */
     parameter BLOCK_WIDTH = 4
-)
-(
+) (
     input  logic [DATA_WIDTH - 1:0] operand_A_i,
     input  logic [DATA_WIDTH - 1:0] operand_B_i,
     input  logic                    carry_i,
@@ -96,8 +95,7 @@ module CSKA_block #(
 
     /* Number of bits computed in a CSA block */
     BLOCK_WIDTH = 4
-)
-(
+) (
     input  logic [BLOCK_WIDTH - 1:0] csa_operand_A_i,
     input  logic [BLOCK_WIDTH - 1:0] csa_operand_B_i,
     input  logic                     csa_carry_i,
