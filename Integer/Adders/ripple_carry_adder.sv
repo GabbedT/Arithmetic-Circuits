@@ -41,8 +41,7 @@ module ripple_carry_adder #(
 
   /* Number of bits in a word */
   parameter DATA_WIDTH = 32
-) 
-(
+)  (
     input  logic [DATA_WIDTH - 1:0]         operand_A_i,
     input  logic [DATA_WIDTH - 1:0]         operand_B_i,
     input  logic                            carry_i,
@@ -85,4 +84,4 @@ module ripple_carry_adder #(
 
     assign carry_o = carry[OUT][DATA_WIDTH - 1];   
 
-endmodule
+endmodule : ripple_carry_adder
