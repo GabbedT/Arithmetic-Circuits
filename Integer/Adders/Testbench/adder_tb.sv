@@ -28,12 +28,9 @@
 // --------------------------------------------------------------------------------
 // RELEASE HISTORY
 // VERSION : 1.0 
-// DATE : 28 / 10 / 2021
 // DESCRIPTION : Generic and expandable testbench for an adder, it can be connected 
-//               to any adder. To change / add a module just add a parameter called
-//               with the adder's name (es. CS_ADDER), modify the if-else statement
-//               by adding the DUT and the parameter. Change ADDER_TYPE to select a
-//               specific DUT.
+//               to any adder. To change / add a module just instantiate the new
+//               module and connect with the right input/output
 // --------------------------------------------------------------------------------
 // KEYWORDS :
 // --------------------------------------------------------------------------------
@@ -46,155 +43,131 @@
 
 `timescale 1ns/1ps
 
-`include "BitVector.sv"
-
 module adder_tb ();
 
-//--------------------//  
-// MODULES PARAMETERS //
-//--------------------//
+//--------------//  
+//  PARAMETERS  //
+//--------------//
 
-  // Ripple Carry Adder
-  localparam RC_ADDER = 0;
-  // Carry Lookahead Adder
-  localparam CLA_ADDER = 1;
-  // Carry Skip Adder
-  localparam CSK_ADDER = 2;
-  // Carry Select Adder
-  localparam CSEL_ADDER = 3;
+    /* I/O Number of bits */
+    localparam DATA_WIDTH = 32;
 
-  // Number of bits in a vector
-  localparam DATA_WIDTH = 32;
+    localparam CLA_BLOCK_WIDTH = 4;
+    localparam CSA_BLOCK_WIDTH = 4;
+    localparam CKA_BLOCK_WIDTH = 4;
 
-  // Parameter used in modules which calculate the
-  // output in blocks of BLOCK_WIDTH bits 
-  localparam BLOCK_WIDTH = 4;
+    localparam TEST_NUMBER = 1000;
 
-//----------------------//
-// TESTBENCH PARAMETERS //
-//----------------------//
+    /* In nanoseconds */
+    localparam CLK_CYCLE = 10;
+
+    localparam DUTS_NUMBER = 4;
+
+      
+//------------//
+//  DUT NETS  //
+//------------//
+
+    /* Inputs */
+    bit [DATA_WIDTH - 1:0]   operand_A_i = 1'b0;
+    bit [DATA_WIDTH - 1:0]   operand_B_i = 1'b0;
+    bit                      carry_i = 1'b0;
+
+    /* Outputs */
+    logic [DATA_WIDTH - 1:0] result_o[DUTS_NUMBER];
+    logic                    carry_o[DUTS_NUMBER];
   
-  // Enable contraint on test input
-  localparam ENABLE_CONSTRAINT = 0;
 
-  // Number of tests performed
-  localparam TEST_NUMBER = 1000;
+    /* DUTs instantiation */
+    ripple_carry_adder dut0 (
+        .operand_A_i ( operand_A_i    ),
+        .operand_B_i ( operand_B_i    ),
+        .carry_i     ( carry_i        ), 
+        .result_o    ( result_o[0]    ),
+        .carry_o     ( carry_o[0]     )
+    );
 
-  // In nanoseconds
-  localparam CLK_CYCLE = 10;
+    carry_lookahead_adder dut1 (
+        .operand_A_i ( operand_A_i    ),
+        .operand_B_i ( operand_B_i    ),
+        .carry_i     ( carry_i        ), 
+        .result_o    ( result_o[1]    ),
+        .carry_o     ( carry_o[1]     )
+    );
 
-  // Select the DUT
-  localparam ADDER_TYPE = CSK_ADDER;
+    carry_skip_adder dut2 (
+        .operand_A_i ( operand_A_i    ),
+        .operand_B_i ( operand_B_i    ),
+        .carry_i     ( carry_i        ), 
+        .result_o    ( result_o[2]    ),
+        .carry_o     ( carry_o[2]     )
+    );
 
-//----------//
-// DUT Nets //
-//----------//
+    carry_select_adder dut3 (
+        .operand_A_i ( operand_A_i    ),
+        .operand_B_i ( operand_B_i    ),
+        .carry_i     ( carry_i        ), 
+        .result_o    ( result_o[3]    ),
+        .carry_o     ( carry_o[3]     )
+    );
 
-  // Inputs
-  logic [DATA_WIDTH - 1:0] operand_A_i;
-  logic [DATA_WIDTH - 1:0] operand_B_i;
-  logic                    carry_i;
 
-  // Outputs
-  logic [DATA_WIDTH - 1:0] result_o;
-  logic                    carry_o;
+    /* Golden model variables */
+    bit [DATA_WIDTH - 1:0] op_A, op_B;
+    bit                    carry_in;
+    bit [DATA_WIDTH - 1:0] result;
+    bit                    carry_out;
+
+
+//-------------//
+//  TESTBENCH  //
+//-------------//
   
-  
-  if (ADDER_TYPE == RC_ADDER) begin
-    ripple_carry_adder dut (.*);
-  end else if (ADDER_TYPE == CLA_ADDER) begin
-    carry_lookahead_adder dut (.*);
-  end else if (ADDER_TYPE == CSK_ADDER) begin 
-    carry_skip_adder dut (.*);
-  end else if (ADDER_TYPE == CSEL_ADDER) begin 
-    carry_select_adder dut (.*);
-  end
-  
-  // Create two object used to simulate the 
-  // wanted behaviour of the adder
-  BitVector #(DATA_WIDTH) item_1 = new ();
-  BitVector #(DATA_WIDTH) item_2 = new ();
+    int test_passed[DUTS_NUMBER];
+    int test_error[DUTS_NUMBER];
 
-  // Variable that hold the expected result, it hold the carry
-  logic [DATA_WIDTH:0] result;
-  
-  int testPassed = 0;
-  int testError = 0;
-
-      initial begin 
-        operand_A_i = 0;
-        operand_B_i = 0;
-        carry_i = 0;
-        
-        // Set boundaries
-        item_1.setMaxValue('b1);
-        item_2.setMaxValue('b1);
-        item_1.setMinValue('b0);
-        item_2.setMinValue('b0);
-        
-        // Constraint enable
-        item_1.limit.constraint_mode(ENABLE_CONSTRAINT);
-        item_2.limit.constraint_mode(ENABLE_CONSTRAINT);
-      end
-
-      initial begin
-        for (int i = 0; i < TEST_NUMBER; i++) begin 
-          // Randomize the objects
-          item_1.randomize();
-          item_2.randomize();
-
-          // Perform an addition
-          if (i < TEST_NUMBER / 2) begin 
-            // Assign the randomized value to the inputs
-            operand_A_i = item_1.data;
-            operand_B_i = item_2.data;
-
-            result = item_1.data + item_2.data;
-
-            // Wait 1 clock cycle
-            #CLK_CYCLE;
-
-            // Check the result (compare the DUT with the golden model)
-            assert ({carry_o, result_o} == result) begin 
-              testPassed++;
-            end else begin 
-              $display("Input 1: ");
-              item_1.printData("D");
-              $display("Input 2: ");
-              item_2.printData("D");
-
-              $display("TEST %0d NOT PASSED AT TIME: %0t ns \n VALUE: %0d \n EXPECTED: %0d \n\n", i, $time, result_o, item_1.add(item_2.data));
-              testError++;
-            end        
-          end else begin 
-            // Assign the randomized value to the inputs
-            operand_A_i = item_1.data;
-            operand_B_i = item_2.twoComplement();
-
-            result = item_1.data + item_2.data;
-
-            // Wait 1 clock cycle
-            #CLK_CYCLE;
-
-            // Check the result (compare the DUT with the golden model)
-            assert ({carry_o, result_o} == result) begin 
-              testPassed++;
-            end else begin  
-              $display("Input 1: ");
-              item_1.printSignedData("D");
-              $display("Input 2: ");
-              item_2.printSignedData("D");
-
-              $display("TEST %0d NOT PASSED AT TIME: %0t ns \n VALUE: %0d \n EXPECTED: %0d \n\n", i, $time, result_o, item_1.sub(item_2.data));
-              testError++;
-            end
-          end      
+    initial begin  
+        for (int i = 0; i < DUTS_NUMBER; ++i) begin
+            test_passed[i] = 0;
+            test_error[i] = 0;
         end
-        
-        // Display the final result of the testbench
-        $display("[TESTBENCH COMPLETED] \n Number of test passed: %0d \n Number of test failed: %0d", testPassed, testError);
+
+        repeat(TEST_NUMBER) begin
+            op_A = $random();
+            op_B = $random();
+            carry_in = $random();
+
+            /* Golden model operation and check */
+            {carry_out, result} = op_A + op_B + carry_in;
+
+            operand_A_i = op_A;
+            operand_B_i = op_B;
+            carry_i = carry_in;
+
+            #CLK_CYCLE;
+
+            for (int i = 0; i < DUTS_NUMBER; ++i) begin
+                assert({carry_out, result} == {carry_o[i], result_o[i]}) begin
+                    ++test_passed[i];
+                end else begin
+                    ++test_error[i];
+                end
+            end
+        end 
+
+        /* Display the final result of the testbench */
+        $display("--------------[TESTBENCH COMPLETED]--------------\n");
+
+        $display("+-----------------------------------------------+");
+        $display("|     DUT     |     Errors     |     Passed     |");
+        $display("+-----------------------------------------------+");
+
+        for (int i = 0; i < DUTS_NUMBER; ++i) begin 
+            $display("|     %0d     |     %0d        |     %0d        |", i, test_error[i], test_passed[i]);
+            $display("+-----------------------------------------------+");
+        end
 
         $finish;
-      end
+    end
 
 endmodule
