@@ -70,34 +70,28 @@ module carry_select_adder #(
 //  DATAPATH  //
 //------------//
 
-    /* Carry bit produced by each sum bit */
-    logic [IN:OUT][BLOCK_WIDTH - 1:0] carry_rc;
-
-    /* Result of the xor between A and B */
-    logic [BLOCK_WIDTH - 1:0] AB_xor_rc;
+    /* Carry bit produced by the RCA */
+    logic carry_rc;
   
-    /* First BLOCK_WIDTH bits of the result */
+    /* Result produced by the RCA */
     logic [BLOCK_WIDTH - 1:0] result_rc;
 
-        /* The first block is a simple ripple carry adder */
-        always_comb begin : ripple_carry_adder
-            for (int i = 0; i < BLOCK_WIDTH; i++) begin
-                AB_xor_rc[i] = operand_A_i[i] ^ operand_B_i[i];
+    ripple_carry_adder #(BLOCK_WIDTH) rc_adder (
+        .operand_A_i ( operand_A_i  ),
+        .operand_B_i ( operand_B_i  ),
+        .carry_i     ( carry_i      ),
+        .result_o    ( result_rc ),
+        .carry_o     ( carry_rc    )
+    );
 
-                /* The first Full-Adder takes the external carry in */
-                carry_rc[IN][i] = (i == 0) ? carry_i : carry_rc[OUT][i - 1];
-                result_rc[i] = AB_xor_rc[i] ^ carry_rc[IN][i];
-                carry_rc[OUT][i] = (AB_xor_rc[i] & carry_rc[IN][i]) | (operand_A_i[i] & operand_B_i[i]);
-            end
-        end : ripple_carry_adder
-        
-    assign result_o [BLOCK_WIDTH - 1:0] = result_rc;
+    
+    assign result_o[BLOCK_WIDTH - 1:0] = result_rc;
  
-    /* Carry input / output of every CSA block */
+    /* Carry I/O of every CSA block */
     logic [CSA_BLOCKS - 1:0] csa_carry;
 
     /* Take the carry out of the first RC adder as input for the first CSA block */
-    assign csa_carry[0] = carry_rc[OUT][BLOCK_WIDTH - 1];
+    assign csa_carry[0] = carry_rc;
 
     genvar i;
     generate

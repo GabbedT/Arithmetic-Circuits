@@ -116,24 +116,15 @@ module CLA_block #(
 //------------//
 //  DATAPATH  //
 //------------//
+    
+    ripple_carry_adder #(BLOCK_WIDTH) rc_adder (
+        .operand_A_i ( cla_operand_A_i ),
+        .operand_B_i ( cla_operand_B_i ),
+        .carry_i     ( cla_carry_i     ),
+        .result_o    ( cla_result_o    ),
+        .carry_o     ( /*    NC    */  )
+    );
 
-    /* Carry bit produced by each sum bit */
-    logic [IN:OUT][BLOCK_WIDTH - 1:0] carry;
-
-    /* Result of the xor between A and B */
-    logic [BLOCK_WIDTH - 1:0] AB_xor;
-
-        /* Ripple carry */
-        always_comb begin : rc_adder_logic
-            for (int i = 0; i < BLOCK_WIDTH; i++) begin 
-                AB_xor[i] = cla_operand_A_i[i] ^ cla_operand_B_i[i];
-
-                /* The first Full-Adder takes the external carry in */
-                carry[IN][i] = (i == 0) ? cla_carry_i : carry[OUT][i - 1];
-                cla_result_o[i] = AB_xor[i] ^ carry[IN][i];
-                carry[OUT][i] = (AB_xor[i] & carry[IN][i]) | (cla_operand_A_i[i] & cla_operand_B_i[i]);
-            end
-        end : rc_adder_logic
 
     /* Generation and propagation nets */
     logic [BLOCK_WIDTH - 1:0] c_generate, c_propagate;
