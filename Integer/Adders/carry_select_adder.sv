@@ -77,11 +77,11 @@ module carry_select_adder #(
     logic [BLOCK_WIDTH - 1:0] result_rc;
 
     ripple_carry_adder #(BLOCK_WIDTH) rc_adder (
-        .operand_A_i ( operand_A_i  ),
-        .operand_B_i ( operand_B_i  ),
-        .carry_i     ( carry_i      ),
-        .result_o    ( result_rc ),
-        .carry_o     ( carry_rc    )
+        .operand_A_i ( operand_A_i[BLOCK_WIDTH - 1:0] ),
+        .operand_B_i ( operand_B_i[BLOCK_WIDTH - 1:0] ),
+        .carry_i     ( carry_i                        ),
+        .result_o    ( result_rc                      ),
+        .carry_o     ( carry_rc                       )
     );
 
     
