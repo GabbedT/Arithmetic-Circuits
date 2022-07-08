@@ -40,6 +40,12 @@
 // PRODUCT_PER_STAGE :  [x:1]  : Not divisible by DATA_WIDTH
 // ------------------------------------------------------------------------------------
 
+
+`ifndef PIPELINED_LONG_MULTIPLIER_SV 
+    `define PIPELINED_LONG_MULTIPLIER_SV
+
+`include "pipelined_long_multiplier_stage.sv"
+
 module pipelined_long_multiplier #(
 
     /* Number of bits in a word */
@@ -224,3 +230,5 @@ module pipelined_long_multiplier #(
     assign result_o[DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] = result;
 
 endmodule : pipelined_long_multiplier
+
+`endif 

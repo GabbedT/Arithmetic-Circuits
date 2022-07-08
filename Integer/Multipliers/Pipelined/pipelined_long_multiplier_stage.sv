@@ -39,6 +39,11 @@
 // ------------------------------------------------------------------------------------
 
 
+`ifndef PIPELINED_LONG_MULTIPLIER_STAGE_SV
+    `define PIPELINED_LONG_MULTIPLIER_STAGE_SV
+
+`include "long_multiplier_product_row.sv"
+
 module pipelined_long_multiplier_stage #(
 
     /* Number of bits in a word */
@@ -119,5 +124,6 @@ module pipelined_long_multiplier_stage #(
 
     assign partial_product_o = partial_product[PRODUCT_PER_STAGE - 1][DATA_WIDTH - 1:1];
 
-
 endmodule : pipelined_long_multiplier_stage
+
+`endif
