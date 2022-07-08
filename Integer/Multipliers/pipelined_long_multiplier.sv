@@ -14,10 +14,7 @@ module pipelined_long_multiplier #(
     input  logic                          valid_entry_i,
 
     output logic [(2 * DATA_WIDTH) - 1:0] result_o,
-    output logic                          data_valid_o,
-    
-    // FOR DEBUG
-    output logic [PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] final_bits_stage_o
+    output logic                          data_valid_o
 );
 
 //--------------//
@@ -41,8 +38,6 @@ module pipelined_long_multiplier #(
     logic [PIPELINE_REG - 1:0][DATA_WIDTH - 1:0] operand_A_stage_in, operand_A_stage_out, operand_B_stage_in, operand_B_stage_out;
 
     logic [PIPELINE_REG - 1:0] data_valid_stage_in, data_valid_stage_out, carry_stage_in, carry_stage_out;
-
-    logic [PIPELINE_REG - 1:0][PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] final_bits_stage_in, final_bits_stage_out;
 
     logic [PIPELINE_REG - 1:0][DATA_WIDTH - 2:0] partial_product_stage_in, partial_product_stage_out;
 
@@ -87,29 +82,24 @@ module pipelined_long_multiplier #(
 
     logic [PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] result_bits;
 
-        always_comb begin
-            for (int i = 0; i < PIPELINE_REG; ++i) begin 
-                for (int j = i; j < PIPELINE_REG; ++j) begin 
-                    if (j == i) begin 
-                        final_bits_stage_in[i][j] = result_bits[i];
-                    end else begin 
-                        final_bits_stage_in[i][j] = final_bits_stage_out[i][j - 1];
-                    end
-                end 
-            end
-        end
+    logic [PIPELINE_REG - 1:0][PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] result_bits_stage;
+
 
         always_ff @(posedge clk_i or negedge rst_n_i) begin
             if (!rst_n_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin
                     for (int j = i; j < PIPELINE_REG; ++j) begin
-                        final_bits_stage_out[i][j] <= 'b0;
+                        result_bits_stage[i][j] <= 'b0;
                     end
                 end
             end else if (clk_en_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin
                     for (int j = i; j < PIPELINE_REG; ++j) begin
-                        final_bits_stage_out[i][j] <= final_bits_stage_in[i][j];
+                        if (i == j) begin 
+                            result_bits_stage[i][j] <= result_bits[i];
+                        end else begin 
+                            result_bits_stage[i][j] <= result_bits_stage[i][j - 1];
+                        end
                     end
                 end
             end
@@ -151,7 +141,7 @@ module pipelined_long_multiplier #(
                     .carry_i             ( carry_stage_out[i - 1]                                                   ),
                     .carry_o             ( carry_stage_in[i]                                                        ),
                     .partial_product_o   ( partial_product_stage_in[i]                                              ),
-                    .final_result_bits_o ( result_bits[i]                                                )
+                    .final_result_bits_o ( result_bits[i]                                                           )
                 );
             end
         end
@@ -164,8 +154,16 @@ module pipelined_long_multiplier #(
 
     assign data_valid_o = data_valid_stage_out[PIPELINE_REG - 1];
 
-    // assign result_o[DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] = final_bits_stage_out[PIPELINE_REG - 1:0][PIPELINE_REG - 1:0]; 
 
-assign final_bits_stage_o = final_bits_stage_out[PIPELINE_REG - 1];
+    logic [DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] result;
+    
+        /* Assign to result the last stage of the result bits */
+        always_comb begin 
+            for (int i = 0; i < PIPELINE_REG; ++i) begin 
+                result[i * PRODUCT_PER_STAGE +: PRODUCT_PER_STAGE] = result_bits_stage[i][PIPELINE_REG - 1];
+            end
+        end
+
+    assign result_o[DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] = result;
 
 endmodule : pipelined_long_multiplier
