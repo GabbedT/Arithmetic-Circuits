@@ -36,6 +36,12 @@
 // DATA_WIDTH        :   /   : Not power of 2   
 // ------------------------------------------------------------------------------------
 
+
+`ifndef LONG_MULTIPLIER_SV 
+    `define LONG_MULTIPLIER_SV
+
+`include "long_multiplier_product_row.sv"
+
 module long_multiplier #(
 
     /* Number of bits in a word */
@@ -108,3 +114,5 @@ module long_multiplier #(
     assign result_o[0] = and_product[0][0];
 
 endmodule : long_multiplier
+
+`endif
