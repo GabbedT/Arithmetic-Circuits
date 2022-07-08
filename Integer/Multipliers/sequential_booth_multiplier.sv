@@ -53,6 +53,10 @@
 // RADIX      :  [16|8|4|2] : log2(RADIX) is the number of bits recoded  : 2
 // ------------------------------------------------------------------------------------
 
+
+`ifndef SEQUENTIAL_BOOTH_MULTIPLIER_SV
+    `define SEQUENTIAL_BOOTH_MULTIPLIER_SV
+
 module sequential_booth_multiplier #(
 
     /* Number of bits in a word */
@@ -76,6 +80,9 @@ module sequential_booth_multiplier #(
 //------------//
 // PARAMETERS //
 //------------//
+
+    /* Syncronous or asyncronous reset */
+    `define ASYNC
 
     /* Current and next */
     localparam CRT = 0;
@@ -105,7 +112,7 @@ module sequential_booth_multiplier #(
     
     logic [COUNTER_BITS - 1:0] counter_CRT, counter_NXT;
  
-        always_ff @(posedge clk_i or negedge rst_n_i) begin : state_register
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : state_register
             if (!rst_n_i) begin 
                 state_CRT <= IDLE;
             end else if (clk_en_i) begin 
@@ -316,7 +323,7 @@ module sequential_booth_multiplier #(
     endgenerate 
 
 
-        always_ff @(posedge clk_i or negedge rst_n_i) begin : counter_logic
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : counter_logic
             if (!rst_n_i) begin
                 counter_CRT <= 'b0;
             end else if (clk_en_i) begin 
@@ -345,3 +352,5 @@ module sequential_booth_multiplier #(
     assign busy_o = (state_CRT == MULTIPLY);
 
 endmodule : sequential_booth_multiplier
+
+`endif

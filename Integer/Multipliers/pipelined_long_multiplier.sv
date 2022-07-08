@@ -1,3 +1,45 @@
+// MIT License
+//
+// Copyright (c) 2021 Gabriele Tripi
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+// ------------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------------
+// FILE NAME : pipelined_long_multiplier.sv
+// DEPARTMENT : 
+// AUTHOR : Gabriele Tripi
+// AUTHOR'S EMAIL : tripi.gabriele2002@gmail.com
+// ------------------------------------------------------------------------------------
+// RELEASE HISTORY
+// VERSION : 1.0 
+// DESCRIPTION : This module implement the long binary multiplication algorithm to 
+//               multiply two unsigned N bits numbers. The pipeline depth can be 
+//               modified with the corresponding parameter to enable exploration
+//               of frequency / latency tradeoffs.
+// ------------------------------------------------------------------------------------
+// PARAMETERS
+// NAME              : RANGE   : ILLEGAL VALUES 
+//-------------------------------------------------------------------------------------
+// DATA_WIDTH        :   /     : Not power of 2   
+// PRODUCT_PER_STAGE :  [x:1]  : Not divisible by DATA_WIDTH
+// ------------------------------------------------------------------------------------
+
 module pipelined_long_multiplier #(
 
     /* Number of bits in a word */
@@ -21,6 +63,9 @@ module pipelined_long_multiplier #(
 //  PARAMETERS  //
 //--------------//
 
+    /* Syncronous or asyncronous reset */
+    `define ASYNC
+
     /* Partial products elaborated per clock cycle*/
     localparam PRODUCT_PER_STAGE = DATA_WIDTH / PIPELINE_DEPTH;
 
@@ -35,57 +80,69 @@ module pipelined_long_multiplier #(
 //  PIPELINE REGISTERS  //
 //----------------------//
 
-    logic [PIPELINE_REG - 1:0][DATA_WIDTH - 1:0] operand_A_stage_in, operand_A_stage_out, operand_B_stage_in, operand_B_stage_out;
+    /* 
+     *  Input pipeline nets 
+     */
+    logic [PIPELINE_REG - 1:0][DATA_WIDTH - 1:0] operand_A_stage, operand_B_stage;
 
-    logic [PIPELINE_REG - 1:0] data_valid_stage_in, data_valid_stage_out, carry_stage_in, carry_stage_out;
+    logic [PIPELINE_REG - 1:0] data_valid_stage;
+
+
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : inputs_pipeline_registers
+            if (!rst_n_i) begin
+                for (int i = 0; i < PIPELINE_REG; ++i) begin 
+                    operand_A_stage[i] <= 'b0;
+                    operand_B_stage[i] <= 'b0;
+
+                    data_valid_stage[i] <= 1'b0;
+                end
+            end else if (clk_en_i) begin
+                for (int i = 0; i < PIPELINE_REG; ++i) begin 
+                    if (i == 0) begin 
+                        operand_A_stage[i] <= operand_A_i;
+                        operand_B_stage[i] <= operand_B_i;
+
+                        data_valid_stage[i] <= valid_entry_i;
+                    end else begin 
+                        operand_A_stage[i] <= operand_A_stage[i - 1];
+                        operand_B_stage[i] <= operand_B_stage[i - 1];
+
+                        data_valid_stage[i] <= data_valid_stage[i - 1];
+                    end
+                end  
+            end
+        end : inputs_pipeline_registers
+
+
+    /* 
+     * Datapath pipeline nets 
+     */
+    logic [PIPELINE_REG - 1:0] carry_stage_in, carry_stage_out;
 
     logic [PIPELINE_REG - 1:0][DATA_WIDTH - 2:0] partial_product_stage_in, partial_product_stage_out;
 
+    logic [PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] result_bits; 
 
-        /* Input assignment */
-        always_comb begin : pipeline_assignment
-            for (int i = 0; i < PIPELINE_REG; ++i) begin 
-                if (i == 0) begin
-                    operand_A_stage_in[0] = operand_A_i;
-                    operand_B_stage_in[0] = operand_B_i;
+    /* The first index specifies the stage where the bits are produced, the second index specifies the
+     * stage of the pipeline register and the third index specifies the data width */
+    logic [PIPELINE_REG - 1:0][PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] result_bits_stage;
 
-                    data_valid_stage_in[0] = valid_entry_i;
-                end else begin
-                    operand_A_stage_in[i] = operand_A_stage_out[i - 1];
-                    operand_B_stage_in[i] = operand_B_stage_out[i - 1];
 
-                    data_valid_stage_in[i] = data_valid_stage_out[i - 1];
-                end
-            end
-        end : pipeline_assignment
-
-        always_ff @(posedge clk_i or negedge rst_n_i) begin : pipeline_registers
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin
             if (!rst_n_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin 
-                    operand_A_stage_out[i] <= 'b0;
-                    operand_B_stage_out[i] <= 'b0;
-                    data_valid_stage_out[i] <= 1'b0;
                     carry_stage_out[i] <= 1'b0;
                     partial_product_stage_out[i] <= 'b0;
                 end
             end else if (clk_en_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin 
-                    operand_A_stage_out[i] <= operand_A_stage_in[i];
-                    operand_B_stage_out[i] <= operand_B_stage_in[i];
-                    data_valid_stage_out[i] <= data_valid_stage_in[i];
                     carry_stage_out[i] <= carry_stage_in[i];
                     partial_product_stage_out[i] <= partial_product_stage_in[i];
-                end  
+                end
             end
-        end : pipeline_registers
+        end
 
-
-    logic [PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] result_bits;
-
-    logic [PIPELINE_REG - 1:0][PIPELINE_REG - 1:0][PRODUCT_PER_STAGE - 1:0] result_bits_stage;
-
-
-        always_ff @(posedge clk_i or negedge rst_n_i) begin
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : final_bits_pipeline_network
             if (!rst_n_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin
                     for (int j = i; j < PIPELINE_REG; ++j) begin
@@ -103,7 +160,7 @@ module pipelined_long_multiplier #(
                     end
                 end
             end
-        end
+        end : final_bits_pipeline_network
 
 
 //------------//
@@ -125,8 +182,8 @@ module pipelined_long_multiplier #(
                 );
             end else if (i == (PIPELINE_DEPTH - 1)) begin
                 pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .operand_A_i         ( operand_A_stage_out[i - 1]                                               ),
-                    .operand_B_i         ( operand_B_stage_out[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
+                    .operand_A_i         ( operand_A_stage[i - 1]                                                   ),
+                    .operand_B_i         ( operand_B_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
                     .last_partial_prod_i ( partial_product_stage_out[i - 1]                                         ),
                     .carry_i             ( carry_stage_out[i - 1]                                                   ),
                     .carry_o             ( result_o[RESULT_WIDTH - 1]                                               ),
@@ -135,8 +192,8 @@ module pipelined_long_multiplier #(
                 );     
             end else begin
                 pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .operand_A_i         ( operand_A_stage_out[i - 1]                                               ),
-                    .operand_B_i         ( operand_B_stage_out[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
+                    .operand_A_i         ( operand_A_stage[i - 1]                                                   ),
+                    .operand_B_i         ( operand_B_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
                     .last_partial_prod_i ( partial_product_stage_out[i - 1]                                         ),
                     .carry_i             ( carry_stage_out[i - 1]                                                   ),
                     .carry_o             ( carry_stage_in[i]                                                        ),
@@ -152,7 +209,7 @@ module pipelined_long_multiplier #(
 //  OUTPUT ASSIGNMENT  //
 //---------------------//
 
-    assign data_valid_o = data_valid_stage_out[PIPELINE_REG - 1];
+    assign data_valid_o = data_valid_stage[PIPELINE_REG - 1];
 
 
     logic [DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] result;
