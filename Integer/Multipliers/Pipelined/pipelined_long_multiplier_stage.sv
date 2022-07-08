@@ -42,7 +42,7 @@
 `ifndef PIPELINED_LONG_MULTIPLIER_STAGE_SV
     `define PIPELINED_LONG_MULTIPLIER_STAGE_SV
 
-`include "long_multiplier_product_row.sv"
+`include "../Combinational/long_multiplier_product_row.sv"
 
 module pipelined_long_multiplier_stage #(
 
