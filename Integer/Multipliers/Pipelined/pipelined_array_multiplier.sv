@@ -21,7 +21,7 @@
 // SOFTWARE.
 // ------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------
-// FILE NAME : pipelined_long_multiplier.sv
+// FILE NAME : pipelined_array_multiplier.sv
 // DEPARTMENT : 
 // AUTHOR : Gabriele Tripi
 // AUTHOR'S EMAIL : tripi.gabriele2002@gmail.com
@@ -41,12 +41,12 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef PIPELINED_LONG_MULTIPLIER_SV 
-    `define PIPELINED_LONG_MULTIPLIER_SV
+`ifndef PIPELINED_ARRAY_MULTIPLIER_SV 
+    `define PIPELINED_ARRAY_MULTIPLIER_SV
 
-`include "pipelined_long_multiplier_stage.sv"
+`include "pipelined_array_multiplier_stage.sv"
 
-module pipelined_long_multiplier #(
+module pipelined_array_multiplier #(
 
     /* Number of bits in a word */
     parameter DATA_WIDTH = 16,
@@ -59,7 +59,7 @@ module pipelined_long_multiplier #(
     input  logic                          rst_n_i,
     input  logic [DATA_WIDTH - 1:0]       operand_A_i,
     input  logic [DATA_WIDTH - 1:0]       operand_B_i,
-    input  logic                          valid_entry_i,
+    input  logic                          data_valid_i,
 
     output logic [(2 * DATA_WIDTH) - 1:0] result_o,
     output logic                          data_valid_o
@@ -108,7 +108,7 @@ module pipelined_long_multiplier #(
                         operand_A_stage[i] <= operand_A_i;
                         operand_B_stage[i] <= operand_B_i;
 
-                        data_valid_stage[i] <= valid_entry_i;
+                        data_valid_stage[i] <= data_valid_i;
                     end else begin 
                         operand_A_stage[i] <= operand_A_stage[i - 1];
                         operand_B_stage[i] <= operand_B_stage[i - 1];
