@@ -21,7 +21,7 @@
 // SOFTWARE.
 // ------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------
-// FILE NAME : long_multiplier.sv
+// FILE NAME : array_multiplier.sv
 // DEPARTMENT : 
 // AUTHOR : Gabriele Tripi
 // AUTHOR'S EMAIL : tripi.gabriele2002@gmail.com
@@ -42,7 +42,7 @@
 
 `include "array_multiplier_product_row.sv"
 
-module long_multiplier #(
+module array_multiplier #(
 
     /* Number of bits in a word */
     parameter DATA_WIDTH = 8
