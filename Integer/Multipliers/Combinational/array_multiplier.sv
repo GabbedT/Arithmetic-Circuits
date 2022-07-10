@@ -37,10 +37,10 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef LONG_MULTIPLIER_SV 
-    `define LONG_MULTIPLIER_SV
+`ifndef ARRAY_MULTIPLIER_SV 
+    `define ARRAY_MULTIPLIER_SV
 
-`include "long_multiplier_product_row.sv"
+`include "array_multiplier_product_row.sv"
 
 module long_multiplier #(
 
