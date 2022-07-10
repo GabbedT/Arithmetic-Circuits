@@ -21,7 +21,7 @@
 // SOFTWARE.
 // ------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------
-// FILE NAME : pipelined_long_multiplier_stage.sv
+// FILE NAME : pipelined_array_multiplier_stage.sv
 // DEPARTMENT : 
 // AUTHOR : Gabriele Tripi
 // AUTHOR'S EMAIL : tripi.gabriele2002@gmail.com
@@ -39,12 +39,12 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef PIPELINED_LONG_MULTIPLIER_STAGE_SV
-    `define PIPELINED_LONG_MULTIPLIER_STAGE_SV
+`ifndef PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
+    `define PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
 
-`include "../Combinational/long_multiplier_product_row.sv"
+`include "../Combinational/array_multiplier_product_row.sv"
 
-module pipelined_long_multiplier_stage #(
+module pipelined_array_multiplier_stage #(
 
     /* Number of bits in a word */
     parameter DATA_WIDTH = 8,
