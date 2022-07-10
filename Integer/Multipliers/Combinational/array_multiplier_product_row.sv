@@ -40,10 +40,10 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef LONG_MULTIPLIER_PRODUCT_ROW_SV
-    `define LONG_MULTIPLIER_PRODUCT_ROW_SV
+`ifndef ARRAY_MULTIPLIER_PRODUCT_ROW_SV
+    `define ARRAY_MULTIPLIER_PRODUCT_ROW_SV
 
-module long_multiplier_product_row #(
+module array_multiplier_product_row #(
 
     /* Number of bits in a word */
     parameter DATA_WIDTH = 32
