@@ -69,6 +69,6 @@ module array_multiplier_product_row #(
     /* Last output bit logic */
     assign {carry_o, result_o[DATA_WIDTH - 2]} = prev_carry_i + carry + and_product_i[DATA_WIDTH - 1];
 
-endmodule : long_multiplier_product_row
+endmodule : array_multiplier_product_row
 
 `endif 

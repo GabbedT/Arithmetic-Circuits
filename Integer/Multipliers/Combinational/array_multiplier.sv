@@ -89,7 +89,7 @@ module array_multiplier #(
     generate
         for (i = 0; i < DATA_WIDTH - 1; ++i) begin 
             if (i == 0) begin
-                long_multiplier_product_row #(DATA_WIDTH) multiplier_row (
+                array_multiplier_product_row #(DATA_WIDTH) multiplier_row (
                     .and_product_i     ( and_product[1][DATA_WIDTH - 1:0]     ),
                     .partial_product_i ( and_product[0][DATA_WIDTH - 1:1]     ),
                     .prev_carry_i      ( 1'b0                                 ),
@@ -98,7 +98,7 @@ module array_multiplier #(
                     .carry_o           ( carry_next[0]                        ) 
                 );
             end else begin
-                long_multiplier_product_row #(DATA_WIDTH) multiplier_row (
+                array_multiplier_product_row #(DATA_WIDTH) multiplier_row (
                     .and_product_i     ( and_product[i + 1]                       ),
                     .partial_product_i ( partial_product[i - 1][DATA_WIDTH - 1:1] ),
                     .prev_carry_i      ( carry_next[i - 1]                        ),
@@ -113,6 +113,6 @@ module array_multiplier #(
     assign result_o[(DATA_WIDTH * 2) - 1:DATA_WIDTH] = {carry_next[DATA_WIDTH - 2], partial_product[DATA_WIDTH - 2][DATA_WIDTH - 1:1]};
     assign result_o[0] = and_product[0][0];
 
-endmodule : long_multiplier
+endmodule : array_multiplier
 
 `endif
