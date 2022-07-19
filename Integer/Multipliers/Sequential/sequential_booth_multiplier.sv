@@ -37,6 +37,8 @@
 //               time. After a fixed amount of cycles (depends on the two parameters), 
 //               output become valid as well as the signal "data_valid_o" for 1 clock 
 //               cycle. 
+//               Define ASYNC in a file included in the top module to enable 
+//               asyncronous reset. 
 // ------------------------------------------------------------------------------------
 // REFERENCE: P. E. Madrid, B. Millar and E. E. Swartzlander, "Modified Booth algorithm 
 //            for high radix multiplication," Proceedings 1992 IEEE International 
@@ -81,13 +83,6 @@ module sequential_booth_multiplier #(
 // PARAMETERS //
 //------------//
 
-    /* Syncronous or asyncronous reset */
-    `define ASYNC
-
-    /* Current and next */
-    localparam CRT = 0;
-    localparam NXT = 1;
-
     localparam COUNTER_BITS = $clog2(DATA_WIDTH / $clog2(RADIX));
 
     /* Number of bits recoded by booth algorithm */
@@ -105,10 +100,10 @@ module sequential_booth_multiplier #(
 //-----------//
   
     /* Possible states of FSM */
-    typedef enum logic {IDLE, MULTIPLY} fsm_state_e;
+    typedef enum logic {IDLE, MULTIPLY} fsm_state_t;
 
     /* Current and next state of fsm */
-    fsm_state_e state_CRT, state_NXT;
+    fsm_state_t state_CRT, state_NXT;
     
     logic [COUNTER_BITS - 1:0] counter_CRT, counter_NXT;
  
