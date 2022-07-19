@@ -43,8 +43,8 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef PIPELINED_LONG_MULTIPLIER_SV 
-    `define PIPELINED_LONG_MULTIPLIER_SV
+`ifndef PIPELINED_ARRAY_MULTIPLIER_SV 
+    `define PIPELINED_ARRAY_MULTIPLIER_SV
 
 `include "pipelined_array_multiplier_stage.sv"
 
