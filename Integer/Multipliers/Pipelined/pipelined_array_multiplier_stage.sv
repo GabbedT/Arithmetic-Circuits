@@ -39,10 +39,10 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
-    `define PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
+`ifndef PIPELINED_LONG_MULTIPLIER_STAGE_SV
+    `define PIPELINED_LONG_MULTIPLIER_STAGE_SV
 
-`include "../Combinational/array_multiplier_product_row.sv"
+`include "long_multiplier_product_row.sv"
 
 module pipelined_array_multiplier_stage #(
 
@@ -124,6 +124,6 @@ module pipelined_array_multiplier_stage #(
 
     assign partial_product_o = partial_product[PRODUCT_PER_STAGE - 1][DATA_WIDTH - 1:1];
 
-endmodule : pipelined_long_multiplier_stage
+endmodule : pipelined_array_multiplier_stage
 
 `endif

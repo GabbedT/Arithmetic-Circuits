@@ -32,6 +32,8 @@
 //               multiply two unsigned N bits numbers. The pipeline depth can be 
 //               modified with the corresponding parameter to enable exploration
 //               of frequency / latency tradeoffs.
+//               Define ASYNC in a file included in the top module to enable 
+//               asyncronous reset.
 // ------------------------------------------------------------------------------------
 // PARAMETERS
 // NAME              : RANGE   : ILLEGAL VALUES 
@@ -41,8 +43,8 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef PIPELINED_ARRAY_MULTIPLIER_SV 
-    `define PIPELINED_ARRAY_MULTIPLIER_SV
+`ifndef PIPELINED_LONG_MULTIPLIER_SV 
+    `define PIPELINED_LONG_MULTIPLIER_SV
 
 `include "pipelined_array_multiplier_stage.sv"
 
@@ -57,20 +59,17 @@ module pipelined_array_multiplier #(
     input  logic                          clk_i,
     input  logic                          clk_en_i,
     input  logic                          rst_n_i,
-    input  logic [DATA_WIDTH - 1:0]       operand_A_i,
-    input  logic [DATA_WIDTH - 1:0]       operand_B_i,
+    input  logic [DATA_WIDTH - 1:0]       multiplicand_i,
+    input  logic [DATA_WIDTH - 1:0]       multiplier_i,
     input  logic                          data_valid_i,
 
-    output logic [(2 * DATA_WIDTH) - 1:0] result_o,
+    output logic [(2 * DATA_WIDTH) - 1:0] product_o,
     output logic                          data_valid_o
 );
 
 //--------------//
 //  PARAMETERS  //
 //--------------//
-
-    /* Syncronous or asyncronous reset */
-    `define ASYNC
 
     /* Partial products elaborated per clock cycle*/
     localparam PRODUCT_PER_STAGE = DATA_WIDTH / PIPELINE_DEPTH;
@@ -89,7 +88,7 @@ module pipelined_array_multiplier #(
     /* 
      *  Input pipeline nets 
      */
-    logic [PIPELINE_REG - 1:0][DATA_WIDTH - 1:0] operand_A_stage, operand_B_stage;
+    logic [PIPELINE_REG - 1:0][DATA_WIDTH - 1:0] multiplicand_stage, multiplier_stage;
 
     logic [PIPELINE_REG - 1:0] data_valid_stage;
 
@@ -97,21 +96,21 @@ module pipelined_array_multiplier #(
         always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : inputs_pipeline_registers
             if (!rst_n_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin 
-                    operand_A_stage[i] <= 'b0;
-                    operand_B_stage[i] <= 'b0;
+                    multiplicand_stage[i] <= 'b0;
+                    multiplier_stage[i] <= 'b0;
 
                     data_valid_stage[i] <= 1'b0;
                 end
             end else if (clk_en_i) begin
                 for (int i = 0; i < PIPELINE_REG; ++i) begin 
                     if (i == 0) begin 
-                        operand_A_stage[i] <= operand_A_i;
-                        operand_B_stage[i] <= operand_B_i;
+                        multiplicand_stage[i] <= multiplicand_i;
+                        multiplier_stage[i] <= multiplier_i;
 
                         data_valid_stage[i] <= data_valid_i;
                     end else begin 
-                        operand_A_stage[i] <= operand_A_stage[i - 1];
-                        operand_B_stage[i] <= operand_B_stage[i - 1];
+                        multiplicand_stage[i] <= multiplicand_stage[i - 1];
+                        multiplier_stage[i] <= multiplier_stage[i - 1];
 
                         data_valid_stage[i] <= data_valid_stage[i - 1];
                     end
@@ -178,33 +177,33 @@ module pipelined_array_multiplier #(
         for (i = 0; i < PIPELINE_DEPTH; ++i) begin
             if (i == 0) begin 
                 pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .operand_A_i         ( operand_A_i                          ),
-                    .operand_B_i         ( operand_B_i[PRODUCT_PER_STAGE - 1:0] ),
-                    .last_partial_prod_i ( 'b0                                  ),
-                    .carry_i             ( 1'b0                                 ),
-                    .carry_o             ( carry_stage_in[0]                    ),
-                    .partial_product_o   ( partial_product_stage_in[0]          ),
-                    .final_result_bits_o ( result_bits[0]            )
+                    .multiplicand_i      ( multiplicand_i                        ),
+                    .multiplier_i        ( multiplier_i[PRODUCT_PER_STAGE - 1:0] ),
+                    .last_partial_prod_i ( 'b0                                   ),
+                    .carry_i             ( 1'b0                                  ),
+                    .carry_o             ( carry_stage_in[0]                     ),
+                    .partial_product_o   ( partial_product_stage_in[0]           ),
+                    .final_result_bits_o ( result_bits[0]                        )
                 );
             end else if (i == (PIPELINE_DEPTH - 1)) begin
                 pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .operand_A_i         ( operand_A_stage[i - 1]                                                   ),
-                    .operand_B_i         ( operand_B_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
-                    .last_partial_prod_i ( partial_product_stage_out[i - 1]                                         ),
-                    .carry_i             ( carry_stage_out[i - 1]                                                   ),
-                    .carry_o             ( result_o[RESULT_WIDTH - 1]                                               ),
-                    .partial_product_o   ( result_o[RESULT_WIDTH - 2:DATA_WIDTH]                                    ),
-                    .final_result_bits_o ( result_o[DATA_WIDTH - 1:DATA_WIDTH - PRODUCT_PER_STAGE]                  )
+                    .multiplicand_i      ( multiplicand_stage[i - 1]                                             ),
+                    .multiplier_i        ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
+                    .last_partial_prod_i ( partial_product_stage_out[i - 1]                                      ),
+                    .carry_i             ( carry_stage_out[i - 1]                                                ),
+                    .carry_o             ( product_o[RESULT_WIDTH - 1]                                           ),
+                    .partial_product_o   ( product_o[RESULT_WIDTH - 2:DATA_WIDTH]                                ),
+                    .final_result_bits_o ( product_o[DATA_WIDTH - 1:DATA_WIDTH - PRODUCT_PER_STAGE]              )
                 );     
             end else begin
                 pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .operand_A_i         ( operand_A_stage[i - 1]                                                   ),
-                    .operand_B_i         ( operand_B_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
-                    .last_partial_prod_i ( partial_product_stage_out[i - 1]                                         ),
-                    .carry_i             ( carry_stage_out[i - 1]                                                   ),
-                    .carry_o             ( carry_stage_in[i]                                                        ),
-                    .partial_product_o   ( partial_product_stage_in[i]                                              ),
-                    .final_result_bits_o ( result_bits[i]                                                           )
+                    .multiplicand_i      ( multiplicand_stage[i - 1]                                             ),
+                    .multiplier_i        ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
+                    .last_partial_prod_i ( partial_product_stage_out[i - 1]                                      ),
+                    .carry_i             ( carry_stage_out[i - 1]                                                ),
+                    .carry_o             ( carry_stage_in[i]                                                     ),
+                    .partial_product_o   ( partial_product_stage_in[i]                                           ),
+                    .final_result_bits_o ( result_bits[i]                                                        )
                 );
             end
         end
@@ -227,8 +226,8 @@ module pipelined_array_multiplier #(
             end
         end
 
-    assign result_o[DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] = result;
+    assign product_o[DATA_WIDTH - PRODUCT_PER_STAGE - 1:0] = result;
 
-endmodule : pipelined_long_multiplier
+endmodule : pipelined_array_multiplier
 
 `endif 
