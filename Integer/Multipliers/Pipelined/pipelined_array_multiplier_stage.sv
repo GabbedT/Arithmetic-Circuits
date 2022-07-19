@@ -39,10 +39,10 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef PIPELINED_LONG_MULTIPLIER_STAGE_SV
-    `define PIPELINED_LONG_MULTIPLIER_STAGE_SV
+`ifndef PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
+    `define PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
 
-`include "long_multiplier_product_row.sv"
+`include "array_multiplier_product_row.sv"
 
 module pipelined_array_multiplier_stage #(
 
