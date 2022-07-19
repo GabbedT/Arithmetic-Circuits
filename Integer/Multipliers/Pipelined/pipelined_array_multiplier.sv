@@ -177,8 +177,8 @@ module pipelined_array_multiplier #(
         for (i = 0; i < PIPELINE_DEPTH; ++i) begin
             if (i == 0) begin 
                 pipelined_array_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .multiplicand_i      ( multiplicand_i                        ),
-                    .multiplier_i        ( multiplier_i[PRODUCT_PER_STAGE - 1:0] ),
+                    .operand_A_i         ( multiplicand_i                        ),
+                    .operand_B_i         ( multiplier_i[PRODUCT_PER_STAGE - 1:0] ),
                     .last_partial_prod_i ( 'b0                                   ),
                     .carry_i             ( 1'b0                                  ),
                     .carry_o             ( carry_stage_in[0]                     ),
@@ -187,8 +187,8 @@ module pipelined_array_multiplier #(
                 );
             end else if (i == (PIPELINE_DEPTH - 1)) begin
                 pipelined_array_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .multiplicand_i      ( multiplicand_stage[i - 1]                                             ),
-                    .multiplier_i        ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
+                    .operand_A_i         ( multiplicand_stage[i - 1]                                             ),
+                    .operand_B_i         ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
                     .last_partial_prod_i ( partial_product_stage_out[i - 1]                                      ),
                     .carry_i             ( carry_stage_out[i - 1]                                                ),
                     .carry_o             ( product_o[RESULT_WIDTH - 1]                                           ),
@@ -197,8 +197,8 @@ module pipelined_array_multiplier #(
                 );     
             end else begin
                 pipelined_array_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
-                    .multiplicand_i      ( multiplicand_stage[i - 1]                                             ),
-                    .multiplier_i        ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
+                    .operand_A_i         ( multiplicand_stage[i - 1]                                             ),
+                    .operand_B_i         ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
                     .last_partial_prod_i ( partial_product_stage_out[i - 1]                                      ),
                     .carry_i             ( carry_stage_out[i - 1]                                                ),
                     .carry_o             ( carry_stage_in[i]                                                     ),

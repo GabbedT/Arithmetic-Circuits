@@ -42,7 +42,7 @@
 `ifndef PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
     `define PIPELINED_ARRAY_MULTIPLIER_STAGE_SV
 
-`include "array_multiplier_product_row.sv"
+`include "../Combinational/array_multiplier_product_row.sv"
 
 module pipelined_array_multiplier_stage #(
 
