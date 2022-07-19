@@ -176,7 +176,7 @@ module pipelined_array_multiplier #(
     generate 
         for (i = 0; i < PIPELINE_DEPTH; ++i) begin
             if (i == 0) begin 
-                pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
+                pipelined_array_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
                     .multiplicand_i      ( multiplicand_i                        ),
                     .multiplier_i        ( multiplier_i[PRODUCT_PER_STAGE - 1:0] ),
                     .last_partial_prod_i ( 'b0                                   ),
@@ -186,7 +186,7 @@ module pipelined_array_multiplier #(
                     .final_result_bits_o ( result_bits[0]                        )
                 );
             end else if (i == (PIPELINE_DEPTH - 1)) begin
-                pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
+                pipelined_array_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
                     .multiplicand_i      ( multiplicand_stage[i - 1]                                             ),
                     .multiplier_i        ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
                     .last_partial_prod_i ( partial_product_stage_out[i - 1]                                      ),
@@ -196,7 +196,7 @@ module pipelined_array_multiplier #(
                     .final_result_bits_o ( product_o[DATA_WIDTH - 1:DATA_WIDTH - PRODUCT_PER_STAGE]              )
                 );     
             end else begin
-                pipelined_long_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
+                pipelined_array_multiplier_stage #(DATA_WIDTH, PRODUCT_PER_STAGE) pipeline_stage (
                     .multiplicand_i      ( multiplicand_stage[i - 1]                                             ),
                     .multiplier_i        ( multiplier_stage[i - 1][(PRODUCT_PER_STAGE * i) +: PRODUCT_PER_STAGE] ),
                     .last_partial_prod_i ( partial_product_stage_out[i - 1]                                      ),

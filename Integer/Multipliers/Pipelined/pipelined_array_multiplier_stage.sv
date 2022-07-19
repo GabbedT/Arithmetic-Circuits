@@ -29,7 +29,7 @@
 // RELEASE HISTORY
 // VERSION : 1.0 
 // DESCRIPTION : This module is a stage of the final pipelined multiplier. It is a 
-//               modified version of the module in: `long_multiplier.sv`.
+//               modified version of the module in: `array_multiplier.sv`.
 // ------------------------------------------------------------------------------------
 // PARAMETERS
 // NAME              : RANGE : ILLEGAL VALUES 
@@ -98,7 +98,7 @@ module pipelined_array_multiplier_stage #(
     generate
         for (i = 0; i < PRODUCT_PER_STAGE; ++i) begin 
             if (i == 0) begin
-                long_multiplier_product_row #(DATA_WIDTH) multiplier_row (
+                array_multiplier_product_row #(DATA_WIDTH) multiplier_row (
                     .and_product_i     ( and_product[0][DATA_WIDTH - 1:0]     ),
                     .partial_product_i ( last_partial_prod_i                  ),
                     .prev_carry_i      ( carry_i                              ),
@@ -107,7 +107,7 @@ module pipelined_array_multiplier_stage #(
                     .carry_o           ( carry_next[0]                        ) 
                 );
             end else begin
-                long_multiplier_product_row #(DATA_WIDTH) multiplier_row (
+                array_multiplier_product_row #(DATA_WIDTH) multiplier_row (
                     .and_product_i     ( and_product[i]                           ),
                     .partial_product_i ( partial_product[i - 1][DATA_WIDTH - 1:1] ),
                     .prev_carry_i      ( carry_next[i - 1]                        ),
