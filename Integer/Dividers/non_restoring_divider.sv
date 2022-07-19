@@ -36,6 +36,8 @@
 //               the two operands, assert `data_valid_i` for 1 clock cycle (not neces
 //               sary for a single one, make sure that the signal is deasserted before
 //               the end of the division).
+//               Define ASYNC in a file included in the top module to enable 
+//               asyncronous reset.
 // ------------------------------------------------------------------------------------
 // PARAMETERS
 // NAME              : RANGE  : ILLEGAL VALUES 
@@ -62,7 +64,8 @@ module non_restoring_divider #(
     output logic [DATA_WIDTH - 1:0] quotient_o,
     output logic [DATA_WIDTH - 1:0] remainder_o,
     output logic                    divide_by_zero_o,
-    output logic                    data_valid_o
+    output logic                    data_valid_o,
+    output logic                    idle_o
 );
 
 //--------------//
@@ -70,8 +73,6 @@ module non_restoring_divider #(
 //--------------//
 
     localparam COUNTER_WIDTH = $clog2(DATA_WIDTH);
-
-    `define ASYNC
 
 
 //------------//
@@ -212,6 +213,8 @@ module non_restoring_divider #(
     assign data_valid_o = data_valid_CRT;
 
     assign divide_by_zero_o = divide_by_zero_CRT;
+
+    assign idle_o = (state_NXT == IDLE);
 
 endmodule : non_restoring_divider
 
