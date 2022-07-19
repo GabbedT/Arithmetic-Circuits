@@ -30,7 +30,9 @@
 // VERSION : 1.0 
 // DESCRIPTION : This module perform an unsigned square root using the algorithm
 //               proposed below iteratively in around O(n/2) time. The signal 
-//               "valid_entry_i" must be asserted when the input is valid
+//               "data_valid_i" must be asserted when the input is valid.
+//               Define ASYNC in a file included in the top module to enable 
+//               asyncronous reset.
 // ------------------------------------------------------------------------------------
 // REFERENCES:
 //
@@ -38,180 +40,156 @@
 // Authors: Yamin Li, Wanming Chu  
 // Link: https://ieeexplore.ieee.org/abstract/document/563604   
 // ------------------------------------------------------------------------------------
-// KEYWORDS : data_register, state_register, counter, next_state_logic, valid_register
-// ------------------------------------------------------------------------------------
-// DEPENDENCIES: 
-// ------------------------------------------------------------------------------------
 // PARAMETERS
-//
-// PARAM NAME : RANGE : DESCRIPTION        : DEFAULT VALUE
-// ------------------------------------------------------------------------------------
-// DATA_WIDTH :   /   : I/0 number of bits : 32
+// NAME              : RANGE   : ILLEGAL VALUES 
+//-------------------------------------------------------------------------------------
+// DATA_WIDTH        :   /     : Not power of 2   
 // ------------------------------------------------------------------------------------
 
-module non_restoring_square_root #(parameter DATA_WIDTH = 32)
-(
-  input  logic                          clk_i,    
-  input  logic                          clk_en_i,
-  input  logic                          rst_n_i,    
-  input  logic                          valid_entry_i,
-  input  logic [DATA_WIDTH - 1:0]       radicand_i,
+module non_restoring_square_root #(
 
-  output logic [(DATA_WIDTH / 2) - 1:0] root_o,     
-  output logic [(DATA_WIDTH / 2):0]     remainder_o,  
-  output logic                          data_valid_o
+    /* Input number of bits */
+    parameter DATA_WIDTH = 32
+) (
+    input  logic                          clk_i,    
+    input  logic                          clk_en_i,
+    input  logic                          rst_n_i,    
+    input  logic                          data_valid_i,
+    input  logic [DATA_WIDTH - 1:0]       radicand_i,
+
+    output logic [(DATA_WIDTH / 2) - 1:0] root_o,     
+    output logic [(DATA_WIDTH / 2):0]     remainder_o,  
+    output logic                          data_valid_o
 );
 
-//------------//
-// PARAMETERS //
-//------------//
+//--------------//
+//  PARAMETERS  //
+//--------------//
 
-  // Number of iterations that this module has to perform to return a valid value
-  localparam ITERATIONS = (DATA_WIDTH) / 2;
+    /* Number of iterations that this module has to perform to return a valid value */
+    localparam ITERATIONS = (DATA_WIDTH) / 2;
 
-  // Current and next 
-  localparam CRT = 0;
-  localparam NXT = 1;
 
-//----------------//
-// DATA REGISTERS //
-//----------------//
-
-  logic [NXT:CRT][DATA_WIDTH - 1:0] root;           
-  logic [NXT:CRT][DATA_WIDTH:0] remainder;     
-  logic [NXT:CRT][DATA_WIDTH - 1:0] radicand;   
-   
-      always_ff @(posedge clk_i) begin : data_register
-        if (!rst_n_i) begin 
-          root[CRT] <= 0;
-          remainder[CRT] <= 0;
-          radicand[CRT] <= 0;
-        end else if (clk_en_i) begin 
-          root[CRT] <= root[NXT];
-          remainder[CRT] <= remainder[NXT];
-          radicand[CRT] <= radicand[NXT];
-        end
-      end : data_register
-
-//-----------//
-// FSM LOGIC //
-//-----------//
+//-------------//
+//  FSM LOGIC  //
+//-------------//
  
-  typedef enum logic [1:0] {IDLE, SQRT, RESTORING} fsm_state_e;
+    typedef enum logic [1:0] {IDLE, SQRT, RESTORING} fsm_state_e;
 
-  // IDLE: The unit is waiting for data
-  // SQRT: Perform the square root
-  // RESTORING: Restore the result
+    fsm_state_e state_CRT, state_NXT;
 
-  fsm_state_e [NXT:CRT] state;
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : state_register
+            if (!rst_n_i) begin 
+                state_CRT <= IDLE; 
+            end else if (clk_en_i) begin 
+                state_CRT <= state_NXT; 
+            end
+        end : state_register
 
-  logic [NXT:CRT][$clog2(ITERATIONS) - 1:0] counter;
 
-  // Delay the reset signals by 1 cycle because the FSM should
-  // stay 2 cycles in the IDLE stage when resetted
-  logic rst_n_dly;  
+    logic [$clog2(ITERATIONS) - 1:0] counter_CRT, counter_NXT;
 
-      always_ff @(posedge clk_i) begin
-        rst_n_dly <= rst_n_i;
-      end
+        always_ff @(posedge clk_i) begin : counter_register
+            if (clk_en_i) begin
+                counter_CRT <= counter_NXT; 
+            end
+        end : counter_register
 
-      always_ff @(posedge clk_i) begin : state_register
-        if (!rst_n_i) begin 
-          state[CRT] <= IDLE; 
-        end else if (clk_en_i) begin 
-          state[CRT] <= state[NXT]; 
-        end
-      end : state_register
 
-      always_ff @(posedge clk_i) begin : counter_register
-        if (!rst_n_i) begin 
-          counter[CRT] <= ITERATIONS - 1;
-        end else if (clk_en_i) begin
-          counter[CRT] <= counter[NXT]; 
-        end
-      end : counter_register
+    /* Operand and result registers */
+    logic [DATA_WIDTH - 1:0] root_CRT, root_NXT;
+    logic [DATA_WIDTH - 1:0] radicand_CRT, radicand_NXT;           
+    logic [DATA_WIDTH:0]     remainder_CRT, remainder_NXT;      
+    
+        always_ff @(posedge clk_i) begin : data_register
+            if (clk_en_i) begin 
+                root_CRT <= root_NXT;
+                remainder_CRT <= remainder_NXT;
+                radicand_CRT <= radicand_NXT;
+            end
+        end : data_register
 
-  logic [$clog2(ITERATIONS):0] counter_2;   
 
-  // Counter * 2
-  assign counter_2 = counter << 1;
+    /* Valid data register */
+    logic valid_entry_CRT, valid_entry_NXT;
 
-  logic [DATA_WIDTH:0] rem_new;
-  logic signed [DATA_WIDTH:0] remainder_rest;
+        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : valid_data_register
+            if (!rst_n_i) begin
+                valid_entry_CRT <= 1'b0;
+            end else if (clk_en_i) begin
+                valid_entry_CRT <= valid_entry_NXT;
+            end
+        end : valid_data_register
 
-      always_comb begin : next_state_logic
-        // Default values
-        state[NXT] = state[CRT];
-        counter[NXT] = counter[CRT];
-        root[NXT] = root[CRT];
-        remainder[NXT] = remainder[CRT];
 
-        case (state[CRT])
-          IDLE: begin      
-                  state[NXT] = (~rst_n_dly) ? IDLE : SQRT;
+//------------//
+//  DATAPATH  //
+//------------//
 
-                  // Load the values with their initial value
-                  counter[NXT] = ITERATIONS - 1;
-                  radicand[NXT] = radicand_i;
-                  root[NXT] = 'b0;
-                  remainder[NXT] = 'b0;
+    logic        [DATA_WIDTH:0] rem_new;
+    logic signed [DATA_WIDTH:0] remainder_rest;
+
+        always_comb begin : datapath_logic
+
+            /* Default values */
+            data_valid_NXT = data_valid_CRT;
+            remainder_NXT = remainder_CRT;
+            counter_NXT = counter_CRT;
+            state_NXT = state_CRT;
+            root_NXT = root_CRT;
+
+            case (state_CRT)
+                IDLE: begin      
+                    state_NXT = data_valid_i ? SQRT : IDLE;
+
+                    /* Load with their initial value */
+                    if (data_valid_i) begin 
+                        counter_NXT = ITERATIONS - 1;
+                        radicand_NXT = radicand_i;
+                        root_NXT = 'b0;
+                        remainder_NXT = 'b0;
+                        data_valid_NXT = 1'b0;
+                    end
                 end
 
-          SQRT: begin 
-                  state[NXT] = (counter == 'b0) ? RESTORING : SQRT;  
-                  counter[NXT] = counter[CRT] - 1;
-                  
-                  // If the remainder is negative
-                  if (remainder[CRT][DATA_WIDTH]) begin 
-                    rem_new = (remainder[CRT] << 2) | ((radicand[CRT] >> counter_2) & 'd3);
-                    remainder[NXT] = rem_new + ((root[CRT] << 2) | 'd3);               
-                  end else begin 
-                    rem_new = (remainder[CRT] << 2) | ((radicand[CRT] >> counter_2) & 'd3);
-                    remainder[NXT] = rem_new - ((root[CRT] << 2) | 'b1);
-                  end
+                SQRT: begin 
+                    state_NXT = (counter == 'b0) ? RESTORING : SQRT;  
+                    counter_NXT = counter_CRT - 1'b1;
+                        
+                    /* If the remainder is negative */
+                    if (remainder_CRT[DATA_WIDTH]) begin 
+                        rem_new = (remainder_CRT << 2) | ((radicand_CRT >> (counter << 1)) & 'd3);
+                        remainder_NXT = rem_new + ((root_CRT << 2) | 'd3);               
+                    end else begin 
+                        rem_new = (remainder_CRT << 2) | ((radicand_CRT >> (counter << 1)) & 'd3);
+                        remainder_NXT = rem_new - ((root_CRT << 2) | 'b1);
+                    end
 
-                  // If the remainder is negative
-                  if (remainder[NXT][DATA_WIDTH]) begin
-                    root[NXT] = (root[CRT] << 1);
-                  end else begin
-                    root[NXT] = (root[CRT] << 1) | 'b1;
-                  end
+                    /* If the remainder is negative */
+                    if (remainder_NXT[DATA_WIDTH]) begin
+                        root_NXT = (root_CRT << 1);
+                    end else begin
+                        root_NXT = (root_CRT << 1) | 'b1;
+                    end
                 end
 
-          RESTORING:  begin
-                        state[NXT] = IDLE;
-                        remainder[NXT] = remainder_rest;
-                      end
-        endcase
-      end : next_state_logic
+                RESTORING:  begin
+                    state_NXT = IDLE;
+                    data_valid_NXT = 1'b1;
+                    remainder_NXT = remainder_CRT[DATA_WIDTH] ? (remainder_CRT + ((root_CRT << 1'b1) | 'b1)) : remainder_CRT;;
+                end
+            endcase
+        end : datapath_logic
 
-//-----------------//
-// RESTORING LOGIC //
-//-----------------//
 
-  assign remainder_rest = remainder[CRT][DATA_WIDTH] ? (remainder[CRT] + ((root[CRT] << 1'b1) | 'b1)) : remainder[CRT];
+//----------------//
+//  OUTPUT LOGIC  //
+//----------------//
 
-//--------------//
-// OUTPUT LOGIC //
-//--------------//
+    assign data_valid_o = data_valid_CRT;
 
-  logic [CRT:NXT] valid_entry;
-  
-  // If not in state IDLE recycle the current value
-  assign valid_entry[NXT] = (state[CRT] == IDLE) ? valid_entry_i : valid_entry[CRT];
+    assign remainder_o = remainder_CRT;
 
-      always_ff @(posedge clk_i) begin : valid_register
-        if (!rst_n_i) begin 
-          valid_entry[CRT] <= 'b0;
-        end else if (clk_en_i) begin 
-          valid_entry[CRT] <= valid_entry[NXT];
-        end
-      end : valid_register
-
-  assign data_valid_o = (state[CRT] == IDLE) & valid_entry[CRT];
-
-  assign remainder_o = remainder[CRT];
-
-  assign root_o = root[CRT];
+    assign root_o = root_CRT;
   
 endmodule : non_restoring_square_root
