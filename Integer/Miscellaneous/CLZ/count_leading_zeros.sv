@@ -112,6 +112,6 @@ module count_leading_zeros #(
     /* The output of BNE network drives the control pin of a multiplexer selecting the output of the NLC network */
     assign lz_count_o[1:0] = nlc_count_zero_inv[bne_count_zero];
 
-endmodule : count_leading_zero
+endmodule : count_leading_zeros
 
 `endif 
