@@ -30,12 +30,12 @@
 // VERSION : 1.0 
 // DESCRIPTION : This module perform a SIGNED multiplication using booth algorithm
 //               sequentially. The LATENCY of this multiplier is calculated:
-//               (DATA_WIDTH / log2(RADIX)) + 1. Disable the signal "clk_en_i"
-//               to stop the execution. The signal "valid_entry_i" must be asserted
+//               (DATA_WIDTH / log2(RADIX)) + 1. Disable the signal `clk_en_i`
+//               to stop the execution. The signal `valid_entry_i` must be asserted
 //               when the inputs are valid for 1 clock cycle. Once the signal is high
-//               the new inputs can be elaborated, "busy_o" is asserted during this 
+//               the new inputs can be elaborated, `idle_o` is asserted during this 
 //               time. After a fixed amount of cycles (depends on the two parameters), 
-//               output become valid as well as the signal "data_valid_o" for 1 clock 
+//               output become valid as well as the signal `data_valid_o` for 1 clock 
 //               cycle. 
 //               Define ASYNC in a file included in the top module to enable 
 //               asyncronous reset. 
@@ -76,7 +76,7 @@ module sequential_booth_multiplier #(
 
     output logic [(2 * DATA_WIDTH) - 1:0] result_o,
     output logic                          data_valid_o,
-    output logic                          busy_o
+    output logic                          idle_o
 );
 
 //------------//
@@ -151,6 +151,8 @@ module sequential_booth_multiplier #(
     
     /* Shifted partial product */
     reg_pair_s partial_product_sh;
+
+    logic data_valid_CRT, data_valid_NXT;
   
 
         always_comb begin : datapath_logic
@@ -164,6 +166,7 @@ module sequential_booth_multiplier #(
                     /* Sign extend */
                     reg_B_ff_NXT = $signed(operand_B_i);
                     counter_NXT = 'b0;
+                    data_valid_NXT = 1'b0;
                 end
 
                 MULTIPLY: begin 
@@ -175,6 +178,8 @@ module sequential_booth_multiplier #(
 
                     /* Increment the counter */
                     counter_NXT = counter_CRT + 1;
+
+                    data_valid_NXT = (counter_CRT == (2**COUNTER_BITS - 1));
                 end
           endcase
         end : datapath_logic
@@ -327,24 +332,20 @@ module sequential_booth_multiplier #(
         end : counter_logic
   
 
-    logic valid_entry_CRT, valid_entry_NXT;
-  
-    /* If not in state IDLE recycle the current value */
-    assign valid_entry_NXT = (state_CRT == IDLE) ? valid_entry_i : valid_entry_CRT;
-
         always_ff @(posedge clk_i) begin : valid_register
             if (!rst_n_i) begin 
-                valid_entry_CRT <= 'b0;
+                data_valid_CRT <= 'b0;
             end else if (clk_en_i) begin 
-                valid_entry_CRT <= valid_entry_NXT;
+                data_valid_CRT <= data_valid_NXT;
             end
         end : valid_register
 
-    assign result_o = {reg_pair_ff_CRT._P[DATA_WIDTH - 1:0], reg_pair_ff_CRT._A};
+    assign data_valid_o = data_valid_CRT;
     
-    assign data_valid_o = (state_CRT == IDLE) & valid_entry_CRT;
 
-    assign busy_o = (state_CRT == MULTIPLY);
+    assign result_o = {reg_pair_ff_CRT._P[DATA_WIDTH - 1:0], reg_pair_ff_CRT._A};
+
+    assign idle_o = (state_NXT == IDLE);
 
 endmodule : sequential_booth_multiplier
 

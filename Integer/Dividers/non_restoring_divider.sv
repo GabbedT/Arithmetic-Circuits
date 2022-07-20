@@ -35,7 +35,7 @@
 //               occurring (`divide_by_zero_o`). To start the division after supplying 
 //               the two operands, assert `data_valid_i` for 1 clock cycle (not neces
 //               sary for a single one, make sure that the signal is deasserted before
-//               the end of the division).
+//               the end of the division). `data_valid_o` is asserted for 1 clock cycle
 //               Define ASYNC in a file included in the top module to enable 
 //               asyncronous reset.
 // ------------------------------------------------------------------------------------
@@ -162,16 +162,17 @@ module non_restoring_divider #(
                 IDLE: begin 
                     if (data_valid_i) begin
                         state_NXT = DIVIDE;
-
-                        partial_NXT.remainder = 'b0;
-                        partial_NXT.rem_sign = 1'b0;
-                        partial_NXT.quotient = dividend_i;
-
-                        /* If the divider is elaborating data and the divisor is 0 */
-                        divide_by_zero_NXT = (divisor_i == 'b0);
-
-                        divisor_NXT = divisor_i;
                     end
+
+                    partial_NXT.remainder = 'b0;
+                    partial_NXT.rem_sign = 1'b0;
+                    partial_NXT.quotient = dividend_i;
+
+                    /* If the divider is elaborating data and the divisor is 0 */
+                    divide_by_zero_NXT = (divisor_i == 'b0);
+
+                    data_valid_NXT = 1'b0;
+                    divisor_NXT = divisor_i;
                 end
 
                 DIVIDE: begin

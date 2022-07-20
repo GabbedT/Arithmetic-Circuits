@@ -30,7 +30,8 @@
 // VERSION : 1.0 
 // DESCRIPTION : This module perform an unsigned square root using the algorithm
 //               proposed below iteratively in around O(n/2) time. The signal 
-//               "data_valid_i" must be asserted when the input is valid.
+//               `data_valid_i` must be asserted for 1 clock cycle when the input 
+//               is valid. The signal `data_valid_o` is asserted for 1 clock cycle
 //               Define ASYNC in a file included in the top module to enable 
 //               asyncronous reset.
 // ------------------------------------------------------------------------------------
@@ -59,7 +60,8 @@ module non_restoring_square_root #(
 
     output logic [(DATA_WIDTH / 2) - 1:0] root_o,     
     output logic [(DATA_WIDTH / 2):0]     remainder_o,  
-    output logic                          data_valid_o
+    output logic                          data_valid_o,
+    output logic                          idle_o
 );
 
 //--------------//
@@ -140,16 +142,16 @@ module non_restoring_square_root #(
 
             case (state_CRT)
                 IDLE: begin      
-                    state_NXT = data_valid_i ? SQRT : IDLE;
+                    if (data_valid_i) begin 
+                        state_NXT = SQRT;
+                    end
 
                     /* Load with their initial value */
-                    if (data_valid_i) begin 
-                        counter_NXT = ITERATIONS - 1;
-                        radicand_NXT = radicand_i;
-                        root_NXT = 'b0;
-                        remainder_NXT = 'b0;
-                        data_valid_NXT = 1'b0;
-                    end
+                    data_valid_NXT = 1'b0;
+                    counter_NXT = ITERATIONS - 1;
+                    radicand_NXT = radicand_i;
+                    root_NXT = 'b0;
+                    remainder_NXT = 'b0;
                 end
 
                 SQRT: begin 
@@ -191,5 +193,7 @@ module non_restoring_square_root #(
     assign remainder_o = remainder_CRT;
 
     assign root_o = root_CRT;
+
+    assign idle_o = (state_NXT == IDLE);
   
 endmodule : non_restoring_square_root
