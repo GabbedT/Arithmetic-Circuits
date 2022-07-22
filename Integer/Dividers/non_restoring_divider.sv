@@ -120,10 +120,8 @@ module non_restoring_divider #(
     /* Count the number of iteration */
     logic [COUNTER_WIDTH - 1:0] iter_count_CRT, iter_count_NXT;
 
-        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : counter 
-            if (!rst_n_i) begin 
-                iter_count_CRT <= 'b0;
-            end else if (clk_en_i) begin
+        always_ff @(posedge clk_i) begin : counter 
+            if (clk_en_i) begin
                 iter_count_CRT <= iter_count_NXT;
             end
         end : counter 
