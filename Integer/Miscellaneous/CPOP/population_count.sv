@@ -130,12 +130,13 @@ module population_count #(
 
             case (state_CRT)
                 IDLE: begin
+                    data_valid_NXT = 1'b0;
+                    data_NXT = operand_i;
+                    accumulator_NXT = 6'b0;
+                    counter_NXT = 'b0;
+
                     if (data_valid_i) begin
                         state_NXT = COUNT;
-                        data_NXT = operand_i;
-                        data_valid_NXT = 1'b0;
-                        accumulator_NXT = 6'b0;
-                        counter_NXT = 'b0;
                     end
                 end
 
