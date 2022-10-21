@@ -21,14 +21,14 @@
 // SOFTWARE.
 // ------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------
-// FILE NAME : population_count.sv
+// FILE NAME : population_count_sequential.sv
 // DEPARTMENT : 
 // AUTHOR : Gabriele Tripi
 // AUTHOR'S EMAIL : tripi.gabriele2002@gmail.com
 // ------------------------------------------------------------------------------------
 // RELEASE HISTORY
 // VERSION : 1.0 
-// DESCRIPTION : Count the number of 1 in a N bit word
+// DESCRIPTION : Count the number of 1 in a N bit word syncronously.
 //               Define ASYNC in a file included in the top module to enable 
 //               asyncronous reset.
 // ------------------------------------------------------------------------------------
@@ -39,10 +39,10 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef POPULATION_COUNT_SV
-    `define POPULATION_COUNT_SV
+`ifndef POPULATION_COUNT_SEQUENTIAL_SV
+    `define POPULATION_COUNT_SEQUENTIAL_SV
 
-module population_count #(
+module population_count_sequential #(
 
     /* Input number of bits */
     parameter DATA_WIDTH = 32
@@ -175,6 +175,6 @@ module population_count #(
 
     assign data_valid_o = data_valid_CRT;
 
-endmodule : population_count
+endmodule : population_count_sequential
 
 `endif 
