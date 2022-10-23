@@ -50,7 +50,7 @@ module population_count_combinational #(
     parameter BYTES_NUMBER = DATA_WIDTH / 8
 ) (
     input  logic [BYTES_NUMBER - 1:0][7:0]  operand_i, 
-    output logic [$clog2(DATA_WIDTH) - 1:0] count_o
+    output logic [$clog2(DATA_WIDTH):0] count_o
 );
 
     /* Count bits in a single byte */
@@ -58,7 +58,7 @@ module population_count_combinational #(
 
         always_comb begin : byte_counter_network
             count_byte = '0;
-            
+             
             for (int i = 0; i < BYTES_NUMBER; ++i) begin 
                 case (operand_i[i]) 
                     4'b0000:          count_byte[i] = 3'd0;
