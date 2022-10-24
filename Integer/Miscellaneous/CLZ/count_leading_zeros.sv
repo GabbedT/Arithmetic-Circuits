@@ -100,11 +100,23 @@ module count_leading_zeros #(
     logic [$clog2(DATA_WIDTH) - 3:0] bne_count_zero;
 
     /* The i-th bit of 'nlc_i' rapresent the i-th nibble starting from the MSB */
-    boundary_nibble_encoder bne (
-        .nlc_i           ( (DATA_WIDTH == 32) ? nlc_all_zero_inv : {2'b00, nlc_all_zero_inv} ),
-        .dword_is_zero_o ( is_all_zero_o                                                     ),
-        .zero_count_o    ( bne_count_zero                                                    )  
-    ); 
+    generate 
+
+        if (DATA_WIDTH == 32) begin 
+            boundary_nibble_encoder bne (
+                .nlc_i           ( nlc_all_zero_inv ),
+                .dword_is_zero_o ( is_all_zero_o    ),
+                .zero_count_o    ( bne_count_zero   )  
+            ); 
+        end else if (DATA_WIDTH == 24) begin
+            boundary_nibble_encoder bne (
+                .nlc_i           ( {2'b00, nlc_all_zero_inv} ),
+                .dword_is_zero_o ( is_all_zero_o             ),
+                .zero_count_o    ( bne_count_zero            )  
+            ); 
+        end
+
+    endgenerate
 
     assign lz_count_o[$clog2(DATA_WIDTH) - 1:2] = bne_count_zero;
 
