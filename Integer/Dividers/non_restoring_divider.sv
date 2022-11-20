@@ -53,7 +53,10 @@
 module non_restoring_divider #(
 
     /* Number of bits in a word */
-    parameter DATA_WIDTH = 16
+    parameter DATA_WIDTH = 16,
+
+    /* Used for significand division */
+    parameter FLOATING_POINT = 0
 ) (
     input  logic                    clk_i,
     input  logic                    clk_en_i,
@@ -75,6 +78,9 @@ module non_restoring_divider #(
 
     localparam COUNTER_WIDTH = $clog2(DATA_WIDTH);
 
+    if (FLOATING_POINT) begin
+        `define FLOAT
+    end
 
 //------------//
 //  TYPEDEFS  //
@@ -168,24 +174,44 @@ module non_restoring_divider #(
                         idle_NXT = 1'b0;
 
                         /* If the divider is elaborating data and the divisor is 0 */
-                        divide_by_zero_NXT = (divisor_i == 'b0);
+                        divide_by_zero_NXT = (divisor_i == '0);
                     end
 
-                    partial_NXT.remainder = 'b0;
                     partial_NXT.rem_sign = 1'b0;
-                    partial_NXT.quotient = dividend_i;
+
+                    `ifdef FLOAT 
+                        partial_NXT.remainder = dividend_i;
+                        partial_NXT.quotient = '0;
+                    `else 
+                        partial_NXT.quotient = dividend_i;
+                        partial_NXT.remainder = '0;
+                    `endif 
 
                     data_valid_NXT = 1'b0;
                     divisor_NXT = divisor_i;
-                    iter_count_NXT = 'b0;
+                    iter_count_NXT = '0;
                 end
 
                 DIVIDE: begin
-                    state_NXT = (iter_count_CRT == (DATA_WIDTH - 1)) ? RESTORE : state_CRT;
+                    `ifdef FLOAT 
+                        state_NXT = (iter_count_CRT == (DATA_WIDTH - 1)) ? RESTORE : state_CRT;
+                    `else 
+                        state_NXT = (iter_count_CRT == (DATA_WIDTH - 1)) ? RESTORE : state_CRT;
+                    `endif 
+                    
                     iter_count_NXT = iter_count_CRT + 1;
 
-                    /* In every case shift by one */
-                    pair_shifted = partial_CRT << 1;
+                    `ifdef FLOAT  
+                        if (iter_count_CRT == '0) begin 
+                            pair_shifted = partial_CRT;
+                        end else begin 
+                            /* In every case shift by one */
+                            pair_shifted = partial_CRT << 1;
+                        end
+                    `else 
+                        /* In every case shift by one */
+                        pair_shifted = partial_CRT << 1;
+                    `endif  
 
                     /* If remainder is negative */
                     if (partial_CRT.rem_sign) begin
