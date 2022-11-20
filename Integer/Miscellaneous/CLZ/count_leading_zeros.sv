@@ -28,7 +28,8 @@
 // ------------------------------------------------------------------------------------
 // RELEASE HISTORY
 // VERSION : 1.0 
-// DESCRIPTION : Count the number of leading zeroes in a N bit word
+// DESCRIPTION : Count the number of leading zeroes in a N bit word, in the 24 bits 
+//               configuration the 'is_all_zero_o' output is fixed to 0
 // ------------------------------------------------------------------------------------
 // REFERENCES:
 //
@@ -51,7 +52,7 @@
 module count_leading_zeros #(
 
     /* Input number of bits */
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 24
 ) (
     input  logic [DATA_WIDTH - 1:0]          operand_i,
 
@@ -103,17 +104,21 @@ module count_leading_zeros #(
     generate 
 
         if (DATA_WIDTH == 32) begin 
+
             boundary_nibble_encoder bne (
                 .nlc_i           ( nlc_all_zero_inv ),
                 .dword_is_zero_o ( is_all_zero_o    ),
                 .zero_count_o    ( bne_count_zero   )  
             ); 
+
         end else if (DATA_WIDTH == 24) begin
+
             boundary_nibble_encoder bne (
                 .nlc_i           ( {2'b00, nlc_all_zero_inv} ),
                 .dword_is_zero_o ( is_all_zero_o             ),
                 .zero_count_o    ( bne_count_zero            )  
             ); 
+
         end
 
     endgenerate
@@ -121,8 +126,26 @@ module count_leading_zeros #(
     assign lz_count_o[$clog2(DATA_WIDTH) - 1:2] = bne_count_zero;
 
 
-    /* The output of BNE network drives the control pin of a multiplexer selecting the output of the NLC network */
-    assign lz_count_o[1:0] = nlc_count_zero_inv[bne_count_zero];
+    if (DATA_WIDTH == 32) 
+        assign lz_count_o[1:0] = nlc_count_zero_inv[bne_count_zero];
+    else if (DATA_WIDTH == 24) begin 
+        logic [1:0] lz_count;
+
+            always_comb begin
+                lz_count[1:0] = '0;
+
+                case (bne_count_zero) 
+                    'd0: lz_count[1:0] = nlc_count_zero_inv[0];
+                    'd1: lz_count[1:0] = nlc_count_zero_inv[1];
+                    'd2: lz_count[1:0] = nlc_count_zero_inv[2];
+                    'd3: lz_count[1:0] = nlc_count_zero_inv[3];
+                    'd4: lz_count[1:0] = nlc_count_zero_inv[4];
+                    'd5: lz_count[1:0] = nlc_count_zero_inv[5];
+                endcase
+            end
+
+        assign lz_count_o[1:0] = lz_count;
+    end
 
 endmodule : count_leading_zeros
 
