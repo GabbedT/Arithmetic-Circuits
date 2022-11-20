@@ -51,10 +51,10 @@
 module pipelined_array_multiplier #(
 
     /* Number of bits in a word */
-    parameter DATA_WIDTH = 16,
+    parameter DATA_WIDTH = 32,
 
     /* Number of pipeline stages */
-    parameter PIPELINE_DEPTH = 4
+    parameter PIPELINE_DEPTH = 8
 ) (
     input  logic                          clk_i,
     input  logic                          clk_en_i,
