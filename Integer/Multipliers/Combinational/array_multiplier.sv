@@ -47,8 +47,8 @@ module array_multiplier #(
     /* Number of bits in a word */
     parameter DATA_WIDTH = 8
 ) (
-    input  logic [DATA_WIDTH - 1:0]       operand_A_i,
-    input  logic [DATA_WIDTH - 1:0]       operand_B_i,
+    input  logic [DATA_WIDTH - 1:0]       multiplicand_i,
+    input  logic [DATA_WIDTH - 1:0]       multiplier_i,
 
     output logic [(2 * DATA_WIDTH) - 1:0] result_o
 );
@@ -64,7 +64,7 @@ module array_multiplier #(
         always_comb begin : and_product_generation
             for (int i = 0; i < DATA_WIDTH; ++i) begin 
                 for (int j = 0; j < DATA_WIDTH; ++j) begin
-                    and_product[i][j] = operand_A_i[j] & operand_B_i[i];
+                    and_product[i][j] = multiplicand_i[j] & multiplier_i[i];
                 end              
             end
         end : and_product_generation
