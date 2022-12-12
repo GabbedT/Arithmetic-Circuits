@@ -43,8 +43,8 @@
 // ------------------------------------------------------------------------------------
 
 
-`ifndef COUNT_LEADING_ZEROs_SV
-    `define COUNT_LEADING_ZEROs_SV
+`ifndef COUNT_LEADING_ZEROS_SV
+    `define COUNT_LEADING_ZEROS_SV
 
 `include "boundary_nibble_encoder.sv"
 `include "nibble_local_count.sv"

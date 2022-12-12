@@ -193,11 +193,7 @@ module non_restoring_divider #(
                 end
 
                 DIVIDE: begin
-                    `ifdef FLOAT 
-                        state_NXT = (iter_count_CRT == (DATA_WIDTH - 1)) ? RESTORE : state_CRT;
-                    `else 
-                        state_NXT = (iter_count_CRT == (DATA_WIDTH - 1)) ? RESTORE : state_CRT;
-                    `endif 
+                    state_NXT = (iter_count_CRT == (DATA_WIDTH - 1)) ? RESTORE : state_CRT;
                     
                     iter_count_NXT = iter_count_CRT + 1;
 
