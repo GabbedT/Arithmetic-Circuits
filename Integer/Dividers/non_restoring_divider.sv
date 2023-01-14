@@ -53,10 +53,7 @@
 module non_restoring_divider #(
 
     /* Number of bits in a word */
-    parameter DATA_WIDTH = 16,
-
-    /* Used for significand division */
-    parameter FLOATING_POINT = 0
+    parameter DATA_WIDTH = 16
 ) (
     input  logic                    clk_i,
     input  logic                    clk_en_i,
@@ -77,10 +74,6 @@ module non_restoring_divider #(
 //--------------//
 
     localparam COUNTER_WIDTH = $clog2(DATA_WIDTH);
-
-    if (FLOATING_POINT) begin
-        `define FLOAT
-    end
 
 //------------//
 //  TYPEDEFS  //
@@ -178,14 +171,8 @@ module non_restoring_divider #(
                     end
 
                     partial_NXT.rem_sign = 1'b0;
-
-                    `ifdef FLOAT 
-                        partial_NXT.remainder = dividend_i;
-                        partial_NXT.quotient = '0;
-                    `else 
-                        partial_NXT.quotient = dividend_i;
-                        partial_NXT.remainder = '0;
-                    `endif 
+                    partial_NXT.quotient = dividend_i;
+                    partial_NXT.remainder = '0;
 
                     data_valid_NXT = 1'b0;
                     divisor_NXT = divisor_i;
@@ -197,17 +184,8 @@ module non_restoring_divider #(
                     
                     iter_count_NXT = iter_count_CRT + 1;
 
-                    `ifdef FLOAT  
-                        if (iter_count_CRT == '0) begin 
-                            pair_shifted = partial_CRT;
-                        end else begin 
-                            /* In every case shift by one */
-                            pair_shifted = partial_CRT << 1;
-                        end
-                    `else 
-                        /* In every case shift by one */
-                        pair_shifted = partial_CRT << 1;
-                    `endif  
+                    /* In every case shift by one */
+                    pair_shifted = partial_CRT << 1; 
 
                     /* If remainder is negative */
                     if (partial_CRT.rem_sign) begin
