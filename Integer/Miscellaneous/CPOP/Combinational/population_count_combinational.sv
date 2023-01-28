@@ -46,43 +46,43 @@ module population_count_combinational #(
     /* Input number of bits */
     parameter DATA_WIDTH = 32,
 
-    /* Number of bytes in the operand */
-    parameter BYTES_NUMBER = DATA_WIDTH / 8
+    /* Number of nibbles in the operand */
+    parameter NIBBLES_NUMBER = DATA_WIDTH / 4
 ) (
-    input  logic [BYTES_NUMBER - 1:0][7:0]  operand_i, 
-    output logic [$clog2(DATA_WIDTH):0] count_o
+    input  logic [NIBBLES_NUMBER - 1:0][3:0] operand_i, 
+    output logic [$clog2(DATA_WIDTH):0]      count_o
 );
 
     /* Count bits in a single byte */
-    logic [BYTES_NUMBER - 1:0][2:0] count_byte;
+    logic [NIBBLES_NUMBER - 1:0][2:0] count_nibble;
 
         always_comb begin : byte_counter_network
-            count_byte = '0;
+            count_nibble = '0;
              
-            for (int i = 0; i < BYTES_NUMBER; ++i) begin 
+            for (int i = 0; i < NIBBLES_NUMBER; ++i) begin 
                 case (operand_i[i]) 
-                    4'b0000:          count_byte[i] = 3'd0;
+                    4'b0000:          count_nibble[i] = 3'd0;
 
                     4'b0001, 4'b0010, 
-                    4'b0100, 4'b1000: count_byte[i] = 3'd1;
+                    4'b0100, 4'b1000: count_nibble[i] = 3'd1;
 
                     4'b0011, 4'b0101,
                     4'b1001, 4'b0110,
-                    4'b1010, 4'b1100: count_byte[i] = 3'd2;
+                    4'b1010, 4'b1100: count_nibble[i] = 3'd2;
 
                     4'b0111, 4'b1110,
-                    4'b1011, 4'b1101: count_byte[i] = 3'd3;
+                    4'b1011, 4'b1101: count_nibble[i] = 3'd3;
 
-                    4'b1111:          count_byte[i] = 3'd4;
+                    4'b1111:          count_nibble[i] = 3'd4;
                 endcase 
             end  
         end : byte_counter_network
 
         always_comb begin : adder_network
-            count_o = count_byte[0]; 
+            count_o = count_nibble[0]; 
             
-            for (int i = 1; i < 4; ++i) begin 
-                count_o += count_byte[i]; 
+            for (int i = 1; i < NIBBLES_NUMBER; ++i) begin 
+                count_o += count_nibble[i]; 
             end 
         end : adder_network
 
