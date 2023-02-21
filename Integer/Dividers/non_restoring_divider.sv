@@ -127,19 +127,13 @@ module non_restoring_divider #(
         end : counter 
 
 
-    logic data_valid_CRT, data_valid_NXT;
-    logic idle_CRT, idle_NXT;
     logic divide_by_zero_CRT, divide_by_zero_NXT;
 
         always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : status_register
             if (!rst_n_i) begin
-                data_valid_CRT <= 1'b0;
                 divide_by_zero_CRT <= 1'b0;
-                idle_CRT <= 1'b1;
             end else if (clk_en_i) begin
-                data_valid_CRT <= data_valid_NXT;
                 divide_by_zero_CRT <= divide_by_zero_NXT;
-                idle_CRT <= idle_NXT;
             end
         end : status_register
 
@@ -155,28 +149,29 @@ module non_restoring_divider #(
             partial_NXT = partial_CRT;
             divisor_NXT = divisor_CRT;
             state_NXT = state_CRT;
-            idle_NXT = idle_CRT;
             
-            data_valid_NXT = 1'b0;
             pair_shifted = 'b0;
+
+            data_valid_o = 1'b0;
+            idle_o = 1'b0;
 
             case (state_CRT) 
                 IDLE: begin 
                     if (data_valid_i) begin
                         state_NXT = DIVIDE;
-                        idle_NXT = 1'b0;
-
-                        /* If the divider is elaborating data and the divisor is 0 */
-                        divide_by_zero_NXT = (divisor_i == '0);
                     end
+
+                    /* If the divider is elaborating data and the divisor is 0 */
+                    divide_by_zero_NXT = (divisor_i == '0);
 
                     partial_NXT.rem_sign = 1'b0;
                     partial_NXT.quotient = dividend_i;
                     partial_NXT.remainder = '0;
 
-                    data_valid_NXT = 1'b0;
                     divisor_NXT = divisor_i;
                     iter_count_NXT = '0;
+
+                    idle_o = 1'b1;
                 end
 
                 DIVIDE: begin
@@ -202,8 +197,9 @@ module non_restoring_divider #(
 
                 RESTORE: begin
                     state_NXT = IDLE;
-                    data_valid_NXT = 1'b1;
-                    idle_NXT = 1'b1;
+
+                    data_valid_o = 1'b1;
+                    idle_o = 1'b1;
 
                     /* If the remainder is negative, restore by adding the divisor */
                     if (partial_CRT.rem_sign) begin
@@ -217,11 +213,7 @@ module non_restoring_divider #(
     assign quotient_o = partial_CRT.quotient;
     assign remainder_o = partial_CRT.remainder;
 
-    assign data_valid_o = data_valid_CRT;
-
     assign divide_by_zero_o = divide_by_zero_CRT;
-
-    assign idle_o = idle_CRT;
 
 endmodule : non_restoring_divider
 
