@@ -152,6 +152,7 @@ module non_restoring_divider #(
             
             pair_shifted = 'b0;
 
+            remainder_o = partial_CRT.remainder;
             data_valid_o = 1'b0;
             idle_o = 1'b0;
 
@@ -205,13 +206,14 @@ module non_restoring_divider #(
                     if (partial_CRT.rem_sign) begin
                         {partial_NXT.rem_sign, partial_NXT.remainder} = {partial_CRT.rem_sign, partial_CRT.remainder} + divisor_CRT;
                     end
+
+                    remainder_o = partial_NXT.remainder;
                 end
             endcase
         end : fsm_logic
 
 
     assign quotient_o = partial_CRT.quotient;
-    assign remainder_o = partial_CRT.remainder;
 
     assign divide_by_zero_o = divide_by_zero_CRT;
 
