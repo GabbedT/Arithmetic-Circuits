@@ -94,7 +94,7 @@ module non_restoring_divider #(
 
     fsm_state_t state_CRT, state_NXT;
 
-        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : state_register
+        always_ff @(posedge clk_i) begin : state_register
             if (!rst_n_i) begin
                 state_CRT <= IDLE;
             end else if (clk_en_i) begin
@@ -129,7 +129,7 @@ module non_restoring_divider #(
 
     logic divide_by_zero_CRT, divide_by_zero_NXT;
 
-        always_ff @(posedge clk_i `ifdef ASYNC or negedge rst_n_i `endif) begin : status_register
+        always_ff @(posedge clk_i) begin : status_register
             if (!rst_n_i) begin
                 divide_by_zero_CRT <= 1'b0;
             end else if (clk_en_i) begin
